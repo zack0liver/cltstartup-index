@@ -64,6 +64,11 @@
         .location-cluster:hover {
             transform: scale(1.05);
         }
+        
+        .location-cluster.active {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
 
         .location-pin {
             width: 12px;
@@ -146,7 +151,7 @@
                         <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                         </svg>
-                        Charlotte Hubs
+                        Where We Build
                     </h3>
                     <div id="locationClusters" class="space-y-3">
                         <!-- Clusters will be populated by JS -->
@@ -206,6 +211,7 @@
         let resources = [];
         let uniqueCategories = [];
         let currentFilter = 'all';
+        let currentLocationFilter = 'all';
         let searchQuery = '';
         let locationClusters = {};
 
@@ -216,14 +222,24 @@
             
             if (loc.includes('south end') || loc.includes('south blvd')) return 'South End';
             if (loc.includes('plaza midwood')) return 'Plaza Midwood';
-            if (loc.includes('dilworth') || loc.includes('montford') || loc.includes('park road')) return 'Dilworth/Montford';
-            if (loc.includes('ballantyne') || loc.includes('south charlotte')) return 'South Charlotte';
+            if (loc.includes('dilworth') || loc.includes('montford') || loc.includes('park road') || loc.includes('myers park')) return 'Dilworth/Montford/Myers Park';
+            if (loc.includes('ballantyne') || loc.includes('south charlotte') || loc.includes('matthews')) return 'South Charlotte';
             if (loc.includes('cotswold')) return 'Cotswold';
-            if (loc.includes('north charlotte') || loc.includes('university')) return 'North Charlotte';
+            if (loc.includes('north charlotte') || loc.includes('university') || loc.includes('concord') || loc.includes('lake norman')) return 'North Charlotte';
             if (loc.includes('airport')) return 'Airport Area';
-            if (loc.includes('fort mill') || loc.includes('waxhaw') || loc.includes('renaissance')) return 'Outside CLT';
+            if (loc.includes('fort mill') || loc.includes('waxhaw') || loc.includes('rock hill')) return 'CLT Adjacent';
             
             return 'Other CLT';
+        }
+        
+        function setLocationFilter(locationName) {
+            if (currentLocationFilter === locationName) {
+                currentLocationFilter = 'all';
+            } else {
+                currentLocationFilter = locationName;
+            }
+            displayLocationClusters();
+            render();
         }
 
         function closeModal() {
@@ -289,8 +305,9 @@
 
             container.innerHTML = sorted.map(([name, data]) => {
                 const total = data.hq + data.hub;
+                const isActive = currentLocationFilter === name;
                 return `
-                    <div class="location-cluster p-3 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/50 transition-all">
+                    <div onclick="setLocationFilter('${name}')" class="location-cluster p-3 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/50 transition-all ${isActive ? 'active' : ''}">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm font-bold text-slate-700">${name}</span>
                             <span class="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">${total}</span>
@@ -310,6 +327,14 @@
                 if (r.category) counts[r.category] = (counts[r.category] || 0) + 1;
             });
             let cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+            
+            // Pin "Other" to the end
+            const otherIndex = cats.findIndex(c => c.toLowerCase() === 'other');
+            if (otherIndex > -1) {
+                const other = cats.splice(otherIndex, 1)[0];
+                cats.push(other);
+            }
+            
             cats = ['all', ...cats];
             const container = document.getElementById('filterContainer');
             container.innerHTML = cats.map(c => `
@@ -331,9 +356,10 @@
             const emptyState = document.getElementById('emptyState');
             const filtered = resources.filter(r => {
                 const matchesFilter = (currentFilter === 'all' || r.category === currentFilter);
+                const matchesLocation = (currentLocationFilter === 'all' || categorizeLocation(r.location) === currentLocationFilter);
                 const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                     r.description.toLowerCase().includes(searchQuery.toLowerCase());
-                return matchesFilter && matchesSearch;
+                return matchesFilter && matchesLocation && matchesSearch;
             });
             
             if (filtered.length === 0) {
