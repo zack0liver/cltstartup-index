@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLT Startups | Directory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        html { scroll-behavior: smooth; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background-color: #fdfcf9;
+            color: #1e293b;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .card-vibrant { 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            position: relative;
+        }
+        .card-vibrant:hover {
+            transform: translateY(-4px);
+            border-color: #2563eb;
+            box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.05);
+        }
+        .category-pill {
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .category-pill.active { 
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .modal-overlay {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        main { min-height: 80vh; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Brand Header -->
+    <nav class="bg-white px-8 py-5 border-b border-slate-50">
+        <div class="max-w-5xl mx-auto flex justify-start items-center">
+            <div class="text-2xl font-black tracking-tighter">
+                <span class="text-slate-900">CLT</span><span class="text-blue-600">Startups</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="bg-white border-b border-slate-100 py-16 px-8">
+        <div class="max-w-5xl mx-auto text-center">
+            <h1 class="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter mb-6">
+                A living index of <br class="hidden md:block"> <span class="text-blue-600">Charlotte startups.</span>
+            </h1>
+            <p class="text-lg md:text-xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed">
+                Explore startups building in the Queen City — and help keep the index accurate.
+            </p>
+            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button onclick="openAddModal()" class="px-10 py-4 bg-slate-900 text-white rounded-full font-bold hover:bg-blue-600 transition-all shadow-xl active:scale-95 w-full sm:w-auto">
+                    Submit Startup
+                </button>
+                <a href="#explore" class="px-10 py-4 bg-white text-slate-900 border border-slate-200 rounded-full font-bold hover:bg-slate-50 transition-all active:scale-95 w-full sm:w-auto">
+                    Explore Index
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Navigation & Search bar -->
+    <header id="explore" class="sticky top-0 z-50 bg-[#fdfcf9]/95 backdrop-blur-md border-b border-slate-200">
+        <div class="max-w-5xl mx-auto px-8 py-6">
+            <div class="flex flex-col gap-6 w-full">
+                <div class="relative w-full">
+                    <input type="text" id="searchInput" placeholder="Search by name, industry, or keyword..." class="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm transition-all">
+                    <svg class="absolute left-4 top-3.5 h-6 w-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <div id="filterContainer" class="flex gap-2 overflow-x-auto no-scrollbar w-full pb-1"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-8 py-10 w-full flex-grow">
+        <div id="loadingState" class="flex flex-col items-center py-20">
+            <div class="w-10 h-10 border-4 border-blue-100 border-t-blue-600 rounded-full spinner"></div>
+        </div>
+        <div id="directoryGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden"></div>
+        <div id="emptyState" class="hidden text-center py-20 bg-white/50 rounded-[2rem] border border-dashed border-slate-200">
+            <div class="text-5xl mb-4">🔍</div>
+            <p class="text-slate-600 font-bold text-xl">No results found</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-100 mt-20">
+        <div class="max-w-5xl mx-auto px-8 py-16">
+            <div class="flex flex-col items-start">
+                <h2 class="text-3xl font-black text-slate-900 tracking-tight mb-4">Missing a startup?</h2>
+                <p class="text-slate-500 font-medium leading-relaxed max-w-sm">
+                    This directory is community-driven. Help us build the most comprehensive list of innovation in Charlotte.
+                </p>
+                <button onclick="openAddModal()" class="mt-8 px-8 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all active:scale-95">
+                    Add to Index
+                </button>
+            </div>
+            <div class="pt-8 border-t border-slate-50 mt-16 text-center text-xs text-slate-300 font-bold uppercase tracking-widest">
+                &copy; 2024 Charlotte Startup Index
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal -->
+    <div id="uiModal" class="fixed inset-0 z-[100] hidden overflow-y-auto">
+        <div class="fixed inset-0 modal-overlay" onclick="closeModal()"></div>
+        <div class="relative min-h-screen flex items-center justify-center p-4 sm:p-8">
+            <div id="modalBox" class="bg-white w-full max-w-2xl rounded-[3rem] p-10 md:p-16 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] relative z-10 transition-all">
+                <button onclick="closeModal()" class="absolute top-8 right-8 w-12 h-12 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-900 transition-all">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <div id="modalContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTNHcumKyuDJq7RH4oKSp-ANUo97oODMgmy3UBFKRISv-F5bnGawPcc_bTRyRm_Nqm0Oa44WzQl3Qcg/pub?gid=0&single=true&output=csv';
+        // Updated Apps Script URL
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJMWzAyzORr1SqFlyKmerxhQ3LoeFnPNJmzZzk_k5yG3gResiW7V1QAZlxQ1zUyBhSCw/exec';
+
+        let resources = [];
+        let uniqueCategories = [];
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        function closeModal() {
+            document.body.style.overflow = '';
+            document.getElementById('uiModal').classList.add('hidden');
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch(`${SHEET_CSV_URL}&t=${Date.now()}`);
+                const csvData = await response.text();
+                resources = parseCSV(csvData);
+
+                const cats = new Set();
+                resources.forEach(r => { if(r.category) cats.add(r.category); });
+                uniqueCategories = Array.from(cats).sort();
+
+                setupFilters();
+                render();
+            } catch (e) { 
+                document.getElementById('loadingState').innerHTML = `<p class="text-red-500 font-bold">Error loading data.</p>`;
+            }
+        }
+
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            if (lines.length < 2) return [];
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            return lines.slice(1).map(line => {
+                const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                const obj = {};
+                headers.forEach((h, i) => obj[h] = (values[i] || '').replace(/"/g, '').trim());
+                return obj;
+            }).filter(item => item.title);
+        }
+
+        function setupFilters() {
+            const counts = {};
+            resources.forEach(r => {
+                if (r.category) counts[r.category] = (counts[r.category] || 0) + 1;
+            });
+            let cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+            cats = ['all', ...cats];
+            const container = document.getElementById('filterContainer');
+            container.innerHTML = cats.map(c => `
+                <button onclick="setFilter('${c}')" class="category-pill px-5 py-2 rounded-full border border-slate-200 bg-white text-[11px] font-bold uppercase tracking-wider hover:border-blue-500 transition-all ${c === 'all' ? 'active' : ''}">
+                    ${c}
+                </button>
+            `).join('');
+        }
+
+        function setFilter(cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.category-pill').forEach(el => el.classList.toggle('active', el.innerText.toLowerCase() === cat.toLowerCase()));
+            render();
+        }
+
+        function render() {
+            document.getElementById('loadingState').classList.add('hidden');
+            const grid = document.getElementById('directoryGrid');
+            const emptyState = document.getElementById('emptyState');
+            const filtered = resources.filter(r => {
+                const matchesFilter = (currentFilter === 'all' || r.category === currentFilter);
+                const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                    r.description.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesFilter && matchesSearch;
+            });
+            
+            if (filtered.length === 0) {
+                grid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            grid.classList.remove('hidden');
+            grid.innerHTML = filtered.map((r) => {
+                const domainStr = r.link ? r.link.replace(/^https?:\/\//, '').split('/')[0] : "";
+                const finalLogoUrl = (r.logo && r.logo.trim()) ? r.logo : `https://logo.clearbit.com/${domainStr}`;
+                return `
+                <div class="card-vibrant p-5 flex flex-col h-full">
+                    <span class="absolute top-4 right-4 text-[11px] font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 uppercase tracking-tight z-10">${r.category}</span>
+                    <div class="flex gap-5 items-start mb-auto">
+                        <img src="${finalLogoUrl}" class="w-16 h-16 rounded-2xl object-contain bg-slate-50 border p-2 flex-shrink-0" onerror="this.src='https://ui-avatars.com/api/?name=${r.title}&background=random'">
+                        <div class="flex-1 min-w-0 pr-16">
+                            <a href="${r.link}" target="_blank" class="block font-bold text-slate-900 text-lg truncate hover:text-blue-600 transition-colors">${r.title}</a>
+                            <p class="text-sm text-slate-500 line-clamp-2 leading-relaxed font-medium mt-1">${r.description}</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-50 flex gap-3">
+                        <button onclick='openCompanyProfile()' class="flex-1 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">Company Profile</button>
+                    </div>
+                </div>
+            `; }).join('');
+        }
+
+        function openCompanyProfile() {
+            const modal = document.getElementById('uiModal');
+            const content = document.getElementById('modalContent');
+            document.body.style.overflow = 'hidden';
+            modal.classList.remove('hidden');
+            content.innerHTML = `<div class="text-center py-12"><div class="text-5xl mb-6">🔨</div><h2 class="text-4xl font-black text-slate-900">Company Profile</h2><p class="text-slate-500 text-lg mt-4 font-medium">Company profiles are in development. These can be activated and customized by founders when ready. Check back soon for details! </p></div>`;
+        }
+
+        function openAddModal() {
+            const modal = document.getElementById('uiModal');
+            const content = document.getElementById('modalContent');
+            document.body.style.overflow = 'hidden';
+            modal.classList.remove('hidden');
+
+            const catOptions = uniqueCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            content.innerHTML = `
+                <div class="space-y-8">
+                    <div>
+                        <h2 class="text-4xl font-black text-slate-900 tracking-tight">Submit Startup</h2>
+                        <p class="text-slate-500 font-medium mt-2">Help us grow the index.</p>
+                    </div>
+                    <form id="addForm" class="space-y-5">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Company Name</label>
+                            <input type="text" name="title" required placeholder="Acme Corp" class="w-full p-5 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-lg">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Industry / Category</label>
+                            <select name="category" required class="w-full p-5 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-lg appearance-none">
+                                <option value="" disabled selected>Select Industry</option>
+                                ${catOptions}
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Tagline</label>
+                            <input type="text" name="description" required placeholder="What are you building?" class="w-full p-5 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-lg">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Website</label>
+                            <input type="text" name="link" placeholder="acme.com" required class="w-full p-5 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-lg">
+                        </div>
+                        <div id="formErrorMessage" class="hidden text-red-600 bg-red-50 p-4 rounded-xl text-sm font-bold"></div>
+                        <button type="submit" id="submitBtn" class="w-full py-6 bg-blue-600 text-white rounded-[1.5rem] font-bold mt-6 shadow-xl shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all text-lg">Submit Entry</button>
+                    </form>
+                </div>
+            `;
+
+            document.getElementById('addForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('submitBtn');
+                const errorMsg = document.getElementById('formErrorMessage');
+                
+                btn.disabled = true;
+                btn.innerText = 'Sending...';
+                errorMsg.classList.add('hidden');
+                
+                const formData = new FormData(e.target);
+                const data = {
+                    title: formData.get('title'),
+                    category: formData.get('category'),
+                    description: formData.get('description'),
+                    link: formData.get('link'),
+                    timestamp: new Date().toLocaleString()
+                };
+
+                // Submission logic with POST and exponential backoff
+                const submitWithRetry = async (retries = 5, delay = 1000) => {
+                    try {
+                        await fetch(APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                        
+                        // Because of no-cors, we assume a successful request if no exception is thrown
+                        content.innerHTML = `
+                            <div class="text-center py-12">
+                                <div class="text-5xl mb-6">✅</div>
+                                <h2 class="text-4xl font-black text-slate-900">Success!</h2>
+                                <p class="text-slate-500 text-lg mt-4 font-medium">Your entry has been sent for review.</p>
+                                <button onclick="closeModal()" class="mt-8 px-8 py-3 bg-slate-100 text-slate-600 rounded-full font-bold">Close</button>
+                            </div>`;
+                    } catch (err) {
+                        if (retries > 0) {
+                            setTimeout(() => submitWithRetry(retries - 1, delay * 2), delay);
+                        } else {
+                            btn.disabled = false;
+                            btn.innerText = 'Submit Entry';
+                            errorMsg.innerText = "Submission failed. Please check your connection.";
+                            errorMsg.classList.remove('hidden');
+                        }
+                    }
+                };
+
+                await submitWithRetry();
+            };
+        }
+
+        document.getElementById('searchInput').oninput = (e) => { searchQuery = e.target.value; render(); };
+        window.onload = fetchData;
+    </script>
+</body>
+</html>
