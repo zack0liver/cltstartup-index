@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CLT Startup Index</title>
+    <title>CLT Startups | Directory</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -28,19 +28,12 @@
         }
         .category-pill {
             white-space: nowrap;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s;
         }
         .category-pill.active { 
             background: #2563eb;
             color: white;
             border-color: #2563eb;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-        }
-        .category-pill:hover:not(.active) {
-            transform: translateY(-1px);
-            border-color: #93c5fd;
-            background: #eff6ff;
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -154,17 +147,12 @@
             <!-- Map Sidebar -->
             <aside class="map-sidebar w-72 flex-shrink-0">
                 <div class="bg-white rounded-3xl p-6 border border-slate-200">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-                            </svg>
-                            Where We Build
-                        </h3>
-                        <button id="clearLocationBtn" onclick="clearLocationFilter()" class="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors hidden">
-                            Clear
-                        </button>
-                    </div>
+                    <h3 class="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                        </svg>
+                        Where We Build
+                    </h3>
                     <div id="locationClusters" class="space-y-3">
                         <!-- Clusters will be populated by JS -->
                     </div>
@@ -250,32 +238,6 @@
             } else {
                 currentLocationFilter = locationName;
             }
-            
-            // Show/hide clear button
-            const clearBtn = document.getElementById('clearLocationBtn');
-            if (currentLocationFilter === 'all') {
-                clearBtn.classList.add('hidden');
-            } else {
-                clearBtn.classList.remove('hidden');
-            }
-            
-            displayLocationClusters();
-            render();
-            
-            // Smooth scroll to grid
-            if (currentLocationFilter !== 'all') {
-                setTimeout(() => {
-                    document.getElementById('directoryGrid').scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start' 
-                    });
-                }, 100);
-            }
-        }
-
-        function clearLocationFilter() {
-            currentLocationFilter = 'all';
-            document.getElementById('clearLocationBtn').classList.add('hidden');
             displayLocationClusters();
             render();
         }
@@ -386,16 +348,6 @@
             currentFilter = cat;
             document.querySelectorAll('.category-pill').forEach(el => el.classList.toggle('active', el.innerText.toLowerCase() === cat.toLowerCase()));
             render();
-            
-            // Smooth scroll to grid when filter is applied
-            if (cat !== 'all') {
-                setTimeout(() => {
-                    document.getElementById('directoryGrid').scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start' 
-                    });
-                }, 100);
-            }
         }
 
         function render() {
@@ -537,3 +489,19 @@
                             setTimeout(() => submitWithRetry(retries - 1, delay * 2), delay);
                         } else {
                             btn.disabled = false;
+                            btn.innerText = 'Submit Entry';
+                            errorMsg.innerText = "Submission failed. Please check your connection.";
+                            errorMsg.classList.remove('hidden');
+                        }
+                    }
+                };
+
+                await submitWithRetry();
+            };
+        }
+
+        document.getElementById('searchInput').oninput = (e) => { searchQuery = e.target.value; render(); };
+        window.onload = fetchData;
+    </script>
+</body>
+</html>
