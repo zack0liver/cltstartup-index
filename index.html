@@ -49,11 +49,31 @@
 
         main { min-height: 80vh; }
 
-        /* Map Sidebar Styles */
+        /* Map Sidebar Styles - Optimized */
         .map-sidebar {
             position: sticky;
             top: 200px;
             height: fit-content;
+            max-height: calc(100vh - 220px);
+            overflow-y: auto;
+        }
+
+        .map-sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .map-sidebar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+
+        .map-sidebar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .map-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         .location-cluster {
@@ -62,7 +82,7 @@
         }
 
         .location-cluster:hover {
-            transform: scale(1.05);
+            transform: scale(1.02);
         }
         
         .location-cluster.active {
@@ -71,21 +91,45 @@
         }
 
         .location-pin {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             transition: all 0.2s;
         }
 
         .pin-hq {
             background: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
         }
 
         .pin-hub {
             background: white;
             border: 2px solid #2563eb;
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Sort button styles */
+        .sort-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sort-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .sort-btn.active {
+            background: #1e293b;
+            color: white;
+        }
+
+        @keyframes shuffle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px) rotate(-2deg); }
+            75% { transform: translateX(3px) rotate(2deg); }
+        }
+
+        .shuffling {
+            animation: shuffle 0.3s ease-in-out;
         }
 
         @media (max-width: 1280px) {
@@ -130,11 +174,19 @@
     <header id="explore" class="sticky top-0 z-50 bg-[#fdfcf9]/95 backdrop-blur-md border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-8 py-6">
             <div class="flex flex-col gap-6 w-full">
-                <div class="relative w-full">
-                    <input type="text" id="searchInput" placeholder="Search by name, industry, or keyword..." class="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm transition-all">
-                    <svg class="absolute left-4 top-3.5 h-6 w-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                <div class="flex gap-3 w-full">
+                    <div class="relative flex-1">
+                        <input type="text" id="searchInput" placeholder="Search by name, industry, or keyword..." class="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm transition-all">
+                        <svg class="absolute left-4 top-3.5 h-6 w-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <button id="sortBtn" onclick="toggleSort()" class="sort-btn px-6 py-3.5 bg-white border border-slate-200 rounded-2xl hover:border-slate-300 shadow-sm flex items-center gap-2 text-sm font-bold text-slate-600">
+                        <svg id="sortIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                        </svg>
+                        <span id="sortText">A-Z</span>
+                    </button>
                 </div>
                 <div id="filterContainer" class="flex gap-2 overflow-x-auto no-scrollbar w-full pb-1"></div>
             </div>
@@ -144,7 +196,7 @@
     <!-- Main Content with Sidebar -->
     <div class="max-w-7xl mx-auto px-8 py-10 w-full flex-grow">
         <div class="flex gap-8">
-            <!-- Map Sidebar -->
+            <!-- Map Sidebar - Optimized -->
             <aside class="map-sidebar w-72 flex-shrink-0">
                 <div class="bg-white rounded-3xl p-6 border border-slate-200">
                     <h3 class="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
@@ -153,7 +205,7 @@
                         </svg>
                         Where We Build
                     </h3>
-                    <div id="locationClusters" class="space-y-3">
+                    <div id="locationClusters" class="space-y-2">
                         <!-- Clusters will be populated by JS -->
                     </div>
                 </div>
@@ -214,6 +266,7 @@
         let currentLocationFilter = 'all';
         let searchQuery = '';
         let locationClusters = {};
+        let sortMode = 'random'; // 'random' or 'alpha'
 
         // Location grouping logic
         function categorizeLocation(location) {
@@ -223,7 +276,7 @@
             if (loc.includes('south end') || loc.includes('south blvd')) return 'South End';
             if (loc.includes('uptown')) return 'Uptown';
             if (loc.includes('plaza midwood')) return 'Plaza Midwood';
-            if (loc.includes('dilworth') || loc.includes('montford') || loc.includes('park road') || loc.includes('myers park')) return 'Dilworth/Myers Park/Montford/Park Rd';
+            if (loc.includes('dilworth') || loc.includes('montford') || loc.includes('park road') || loc.includes('myers park')) return 'Dilworth/Myers Park/Sedgefield/Montford';
             if (loc.includes('south park') || loc.includes('southpark')) return 'SouthPark';
             if (loc.includes('ballantyne') || loc.includes('south charlotte') || loc.includes('matthews')) return 'South Charlotte';
             if (loc.includes('cotswold') || loc.includes('oakhurst')) return 'Cotswold/Oakhurst';
@@ -231,7 +284,7 @@
             if (loc.includes('airport')  || loc.includes('renaissance') || loc.includes('billy graham')) return 'Airport Area';
             if (loc.includes('fort mill') || loc.includes('waxhaw') || loc.includes('rock hill') || loc.includes('mooresville') || loc.includes('lake norman')) return 'CLT Adjacent';
             
-            return 'Other CLT/Remote Team';
+            return 'Other CLT';
         }
         
         function setLocationFilter(locationName) {
@@ -241,6 +294,29 @@
                 currentLocationFilter = locationName;
             }
             displayLocationClusters();
+            render();
+        }
+
+        function toggleSort() {
+            const btn = document.getElementById('sortBtn');
+            const icon = document.getElementById('sortIcon');
+            const text = document.getElementById('sortText');
+            const grid = document.getElementById('directoryGrid');
+            
+            if (sortMode === 'random') {
+                sortMode = 'alpha';
+                btn.classList.add('active');
+                text.textContent = 'A-Z';
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/>';
+            } else {
+                sortMode = 'random';
+                btn.classList.remove('active');
+                text.textContent = 'A-Z';
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>';
+                grid.classList.add('shuffling');
+                setTimeout(() => grid.classList.remove('shuffling'), 300);
+            }
+            
             render();
         }
 
@@ -309,12 +385,12 @@
                 const total = data.hq + data.hub;
                 const isActive = currentLocationFilter === name;
                 return `
-                    <div onclick="setLocationFilter('${name}')" class="location-cluster p-3 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/50 transition-all ${isActive ? 'active' : ''}">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-bold text-slate-700">${name}</span>
-                            <span class="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">${total}</span>
+                    <div onclick="setLocationFilter('${name}')" class="location-cluster p-2.5 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/50 transition-all ${isActive ? 'active' : ''}">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-bold text-slate-700">${name}</span>
+                            <span class="text-[10px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">${total}</span>
                         </div>
-                        <div class="flex items-center gap-3 text-xs text-slate-500">
+                        <div class="flex items-center gap-2.5 text-[10px] text-slate-500">
                             ${data.hq > 0 ? `<div class="flex items-center gap-1"><div class="pin-hq location-pin"></div><span>${data.hq} HQ</span></div>` : ''}
                             ${data.hub > 0 ? `<div class="flex items-center gap-1"><div class="pin-hub location-pin"></div><span>${data.hub} Hub</span></div>` : ''}
                         </div>
@@ -330,7 +406,6 @@
             });
             let cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
             
-            // Pin "Other" to the end
             const otherIndex = cats.findIndex(c => c.toLowerCase() === 'other');
             if (otherIndex > -1) {
                 const other = cats.splice(otherIndex, 1)[0];
@@ -352,17 +427,33 @@
             render();
         }
 
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
         function render() {
             document.getElementById('loadingState').classList.add('hidden');
             const grid = document.getElementById('directoryGrid');
             const emptyState = document.getElementById('emptyState');
-            const filtered = resources.filter(r => {
+            let filtered = resources.filter(r => {
                 const matchesFilter = (currentFilter === 'all' || r.category === currentFilter);
                 const matchesLocation = (currentLocationFilter === 'all' || categorizeLocation(r.location) === currentLocationFilter);
                 const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                     r.description.toLowerCase().includes(searchQuery.toLowerCase());
                 return matchesFilter && matchesLocation && matchesSearch;
             });
+            
+            // Sort based on current mode
+            if (sortMode === 'alpha') {
+                filtered.sort((a, b) => a.title.localeCompare(b.title));
+            } else {
+                filtered = shuffleArray(filtered);
+            }
             
             if (filtered.length === 0) {
                 grid.classList.add('hidden');
@@ -376,7 +467,6 @@
                 const domainStr = r.link ? r.link.replace(/^https?:\/\//, '').split('/')[0] : "";
                 const finalLogoUrl = (r.logo && r.logo.trim()) ? r.logo : `https://logo.clearbit.com/${domainStr}`;
                 
-                // Location badge
                 const locationBadge = r.location ? `
                     <div class="flex items-center gap-1 text-xs text-slate-500 mt-2">
                         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -444,66 +534,4 @@
                         </div>
                         <div class="space-y-1">
                             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Website</label>
-                            <input type="text" name="link" placeholder="acme.com" required class="w-full p-5 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-lg">
-                        </div>
-                        <div id="formErrorMessage" class="hidden text-red-600 bg-red-50 p-4 rounded-xl text-sm font-bold"></div>
-                        <button type="submit" id="submitBtn" class="w-full py-6 bg-blue-600 text-white rounded-[1.5rem] font-bold mt-6 shadow-xl shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all text-lg">Submit Entry</button>
-                    </form>
-                </div>
-            `;
-
-            document.getElementById('addForm').onsubmit = async (e) => {
-                e.preventDefault();
-                const btn = document.getElementById('submitBtn');
-                const errorMsg = document.getElementById('formErrorMessage');
-                
-                btn.disabled = true;
-                btn.innerText = 'Sending...';
-                errorMsg.classList.add('hidden');
-                
-                const formData = new FormData(e.target);
-                const data = {
-                    title: formData.get('title'),
-                    category: formData.get('category'),
-                    description: formData.get('description'),
-                    link: formData.get('link'),
-                    timestamp: new Date().toLocaleString()
-                };
-
-                const submitWithRetry = async (retries = 5, delay = 1000) => {
-                    try {
-                        await fetch(APPS_SCRIPT_URL, {
-                            method: 'POST',
-                            mode: 'no-cors',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(data)
-                        });
-                        
-                        content.innerHTML = `
-                            <div class="text-center py-12">
-                                <div class="text-5xl mb-6">✅</div>
-                                <h2 class="text-4xl font-black text-slate-900">Success!</h2>
-                                <p class="text-slate-500 text-lg mt-4 font-medium">Your entry has been sent for review.</p>
-                                <button onclick="closeModal()" class="mt-8 px-8 py-3 bg-slate-100 text-slate-600 rounded-full font-bold">Close</button>
-                            </div>`;
-                    } catch (err) {
-                        if (retries > 0) {
-                            setTimeout(() => submitWithRetry(retries - 1, delay * 2), delay);
-                        } else {
-                            btn.disabled = false;
-                            btn.innerText = 'Submit Entry';
-                            errorMsg.innerText = "Submission failed. Please check your connection.";
-                            errorMsg.classList.remove('hidden');
-                        }
-                    }
-                };
-
-                await submitWithRetry();
-            };
-        }
-
-        document.getElementById('searchInput').oninput = (e) => { searchQuery = e.target.value; render(); };
-        window.onload = fetchData;
-    </script>
-</body>
-</html>
+                            <input type="text" name="link" placeholder="acme.com" required class="w-full p-5 bg-slate-50 rounded-2xl border-none ring
