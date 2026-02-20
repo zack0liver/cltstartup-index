@@ -5,199 +5,375 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CLT Startups | Directory</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --blue: #2563eb;
+            --blue-light: #eff6ff;
+            --navy: #0f172a;
+        }
+
         html { scroll-behavior: smooth; }
-        body { 
-            font-family: 'Outfit', sans-serif; 
-            background-color: #fdfcf9;
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
             color: #1e293b;
             -webkit-tap-highlight-color: transparent;
         }
-        .card-vibrant { 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        /* ── Hero ── */
+        .hero-section {
+            background: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 55% at 50% -10%, rgba(37,99,235,0.09) 0%, transparent 65%),
+                radial-gradient(ellipse 35% 35% at 95% 95%, rgba(99,102,241,0.06) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* ── Cards ── */
+        .startup-card {
+            transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
             background: white;
             border: 1px solid #e2e8f0;
-            border-radius: 20px;
+            border-radius: 16px;
             position: relative;
+            overflow: hidden;
         }
-        .card-vibrant:hover {
-            transform: translateY(-4px);
-            border-color: #2563eb;
-            box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.05);
+        .startup-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--blue) 0%, #6366f1 100%);
+            opacity: 0;
+            transition: opacity 0.22s;
         }
+        .startup-card:hover {
+            transform: translateY(-3px);
+            border-color: #bfdbfe;
+            box-shadow: 0 10px 36px -8px rgba(37,99,235,0.13), 0 4px 12px -4px rgba(0,0,0,0.05);
+        }
+        .startup-card:hover::after { opacity: 1; }
+
+        /* ── Filter pills ── */
         .category-pill {
             white-space: nowrap;
-            transition: all 0.2s;
+            transition: all 0.18s;
+            font-size: 10px;
+            letter-spacing: 0.05em;
         }
-        .category-pill.active { 
-            background: #2563eb;
+        .category-pill.active {
+            background: var(--blue);
             color: white;
-            border-color: #2563eb;
+            border-color: var(--blue);
+            box-shadow: 0 2px 8px rgba(37,99,235,0.28);
         }
+
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .spinner { animation: spin 1s linear infinite; }
+
+        /* ── Spinner ── */
+        .spinner { animation: spin 0.75s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* ── Skeleton ── */
+        @keyframes shimmer {
+            0%   { background-position: -200% 0; }
+            100% { background-position:  200% 0; }
+        }
+        .skeleton {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 8px;
+        }
+
+        /* ── Modal overlay ── */
         .modal-overlay {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(15,23,42,0.45);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        /* ── Fade-up ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { animation: fadeUp 0.35s ease both; }
+
+        /* ── Gradient text ── */
+        .gradient-text {
+            background: linear-gradient(130deg, #1e3a8a 0%, #2563eb 55%, #6366f1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ── Stat badge ── */
+        .stat-badge {
+            background: linear-gradient(135deg, rgba(37,99,235,0.07), rgba(99,102,241,0.07));
+            border: 1px solid rgba(37,99,235,0.14);
+        }
+
+        /* ── Search bar ── */
+        .search-wrap:focus-within {
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.14);
+            border-color: #93c5fd;
         }
 
         main { min-height: 80vh; }
 
-        /* Map Sidebar Styles */
+        /* ── Desktop sidebar ── */
         .map-sidebar {
             position: sticky;
-            top: 200px;
+            top: 168px;
             height: fit-content;
         }
-
         .location-cluster {
-            transition: all 0.3s ease;
+            transition: background 0.18s, border-color 0.18s;
             cursor: pointer;
         }
-
-        .location-cluster:hover {
-            transform: scale(1.05);
-        }
-        
-        .location-cluster.active {
-            border-color: #2563eb;
-            background: #eff6ff;
-        }
+        .location-cluster:hover  { background: #f0f7ff; border-color: #bfdbfe; }
+        .location-cluster.active { border-color: var(--blue); background: var(--blue-light); }
 
         .location-pin {
-            width: 12px;
-            height: 12px;
+            width: 7px; height: 7px;
             border-radius: 50%;
-            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .pin-hq  { background: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,0.18); }
+        .pin-hub { background: white; border: 2px solid var(--blue); }
+
+        /* ── Mobile location chips (visible < 1280px) ── */
+        .mobile-location-chip {
+            white-space: nowrap;
+            transition: all 0.18s;
+            cursor: pointer;
+            font-size: 10px;
+            letter-spacing: 0.04em;
+        }
+        .mobile-location-chip.active {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
         }
 
-        .pin-hq {
-            background: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        @media (max-width: 1279px) { .map-sidebar { display: none; } }
+        @media (min-width: 1280px) { .mobile-location-row { display: none !important; } }
+
+        /* ── Profile button ── */
+        .profile-btn {
+            transition: all 0.18s;
+            color: #64748b;
+            background: #f8fafc;
+        }
+        .profile-btn:hover { background: var(--blue); color: white; }
+
+        /* ── Category tag on card ── */
+        .category-tag {
+            font-size: 9px;
+            letter-spacing: 0.06em;
+            font-weight: 700;
+            text-transform: uppercase;
         }
 
-        .pin-hub {
-            background: white;
-            border: 2px solid #2563eb;
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
-        }
-
-        @media (max-width: 1280px) {
-            .map-sidebar {
-                display: none;
-            }
+        /* ── Logo container ── */
+        .logo-box {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- Brand Header -->
-    <nav class="bg-white px-8 py-5 border-b border-slate-50">
-        <div class="max-w-7xl mx-auto flex justify-start items-center">
-            <div class="text-2xl font-black tracking-tighter">
-                <span class="text-slate-900">CLT</span><span class="text-blue-600">Startups</span>
+    <!-- ═══ Nav ═══ -->
+    <nav class="bg-white border-b border-slate-100 px-5 sm:px-8 py-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2.5">
+                <div class="text-xl font-black tracking-tighter">
+                    <span class="text-slate-900">CLT</span><span class="text-blue-600">Startups</span>
+                </div>
+                <span class="hidden sm:inline-flex items-center text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-full">
+                    Charlotte, NC
+                </span>
             </div>
+            <button onclick="openAddModal()" class="text-xs font-bold px-4 py-2.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all active:scale-95 shadow-sm shadow-blue-200/60">
+                + Submit Startup
+            </button>
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="bg-white border-b border-slate-100 py-16 px-8">
-        <div class="max-w-7xl mx-auto text-center">
-            <h1 class="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter mb-6">
-                A living index of <br class="hidden md:block"> <span class="text-blue-600">Charlotte startups.</span>
+    <!-- ═══ Hero ═══ -->
+    <section class="hero-section border-b border-slate-100 py-16 sm:py-24 px-5 sm:px-8">
+        <div class="max-w-4xl mx-auto text-center relative">
+
+            <!-- Live count badge -->
+            <div id="heroBadge" class="hidden justify-center mb-7">
+                <div class="stat-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block"></span>
+                    <span class="text-[11px] font-bold text-blue-700" id="startupCountText"></span>
+                </div>
+            </div>
+
+            <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black text-slate-900 tracking-tighter mb-5 leading-[1.05]">
+                A living index of<br class="hidden sm:block">
+                <span class="gradient-text">Charlotte startups.</span>
             </h1>
-            <p class="text-lg md:text-xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed">
+            <p class="text-base sm:text-lg text-slate-500 font-medium max-w-xl mx-auto leading-relaxed">
                 Explore startups building in the Queen City — and help keep the index accurate.
             </p>
-            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button onclick="openAddModal()" class="px-10 py-4 bg-slate-900 text-white rounded-full font-bold hover:bg-blue-600 transition-all shadow-xl active:scale-95 w-full sm:w-auto">
+            <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button onclick="openAddModal()" class="px-8 py-3.5 bg-slate-900 text-white rounded-full font-bold text-sm hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/10 active:scale-95 w-full sm:w-auto">
                     Submit Startup
                 </button>
-                <a href="#explore" class="px-10 py-4 bg-white text-slate-900 border border-slate-200 rounded-full font-bold hover:bg-slate-50 transition-all active:scale-95 w-full sm:w-auto">
-                    Explore Index
+                <a href="#explore" class="px-8 py-3.5 bg-white text-slate-700 border border-slate-200 rounded-full font-bold text-sm hover:border-blue-300 hover:text-blue-600 transition-all active:scale-95 w-full sm:w-auto">
+                    Explore Index →
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- Navigation & Search bar -->
-    <header id="explore" class="sticky top-0 z-50 bg-[#fdfcf9]/95 backdrop-blur-md border-b border-slate-200">
-        <div class="max-w-7xl mx-auto px-8 py-6">
-            <div class="flex flex-col gap-6 w-full">
-                <div class="relative w-full">
-                    <input type="text" id="searchInput" placeholder="Search by name, industry, or keyword..." class="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm transition-all">
-                    <svg class="absolute left-4 top-3.5 h-6 w-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    <!-- ═══ Sticky Search + Filters ═══ -->
+    <header id="explore" class="sticky top-0 z-50 bg-[#f8fafc]/96 backdrop-blur-md border-b border-slate-200/80">
+        <div class="max-w-7xl mx-auto px-5 sm:px-8 py-4">
+            <div class="flex flex-col gap-3">
+                <!-- Search -->
+                <div class="search-wrap relative bg-white border border-slate-200 rounded-xl transition-all overflow-hidden">
+                    <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
+                    <input type="text" id="searchInput" placeholder="Search startups, industries, keywords…"
+                        class="w-full pl-10 pr-4 py-3 bg-transparent text-sm outline-none placeholder:text-slate-400">
                 </div>
-                <div id="filterContainer" class="flex gap-2 overflow-x-auto no-scrollbar w-full pb-1"></div>
+                <!-- Category filter pills -->
+                <div id="filterContainer" class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"></div>
+            </div>
+        </div>
+
+        <!-- Mobile: location chip row (hidden on xl+) -->
+        <div class="mobile-location-row border-t border-slate-100 bg-white/80">
+            <div class="max-w-7xl mx-auto px-5 sm:px-8 py-2">
+                <div id="mobileLocationChips" class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"></div>
             </div>
         </div>
     </header>
 
-    <!-- Main Content with Sidebar -->
-    <div class="max-w-7xl mx-auto px-8 py-10 w-full flex-grow">
-        <div class="flex gap-8">
-            <!-- Map Sidebar -->
-            <aside class="map-sidebar w-72 flex-shrink-0">
-                <div class="bg-white rounded-3xl p-6 border border-slate-200">
-                    <h3 class="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+    <!-- ═══ Main layout ═══ -->
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 py-8 w-full flex-grow">
+        <div class="flex gap-7">
+
+            <!-- Desktop sidebar -->
+            <aside class="map-sidebar w-60 flex-shrink-0">
+                <div class="bg-white rounded-2xl p-5 border border-slate-200">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3.5 flex items-center gap-1.5">
+                        <svg class="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                         </svg>
                         Where We Build
-                    </h3>
-                    <div id="locationClusters" class="space-y-3">
-                        <!-- Clusters will be populated by JS -->
-                    </div>
+                    </p>
+                    <div id="locationClusters" class="space-y-1.5"></div>
                 </div>
             </aside>
 
-            <!-- Main Grid -->
-            <main class="flex-1">
-                <div id="loadingState" class="flex flex-col items-center py-20">
-                    <div class="w-10 h-10 border-4 border-blue-100 border-t-blue-600 rounded-full spinner"></div>
+            <!-- Grid -->
+            <main class="flex-1 min-w-0">
+
+                <!-- Skeleton loading -->
+                <div id="loadingState" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5 flex gap-4">
+                        <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
+                        <div class="flex-1 space-y-2 pt-1">
+                            <div class="skeleton h-3.5 w-2/3 rounded"></div>
+                            <div class="skeleton h-3 w-full rounded"></div>
+                            <div class="skeleton h-3 w-4/5 rounded"></div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5 flex gap-4">
+                        <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
+                        <div class="flex-1 space-y-2 pt-1">
+                            <div class="skeleton h-3.5 w-3/4 rounded"></div>
+                            <div class="skeleton h-3 w-full rounded"></div>
+                            <div class="skeleton h-3 w-3/5 rounded"></div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5 flex gap-4">
+                        <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
+                        <div class="flex-1 space-y-2 pt-1">
+                            <div class="skeleton h-3.5 w-1/2 rounded"></div>
+                            <div class="skeleton h-3 w-full rounded"></div>
+                            <div class="skeleton h-3 w-5/6 rounded"></div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5 flex gap-4">
+                        <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
+                        <div class="flex-1 space-y-2 pt-1">
+                            <div class="skeleton h-3.5 w-2/3 rounded"></div>
+                            <div class="skeleton h-3 w-full rounded"></div>
+                            <div class="skeleton h-3 w-4/5 rounded"></div>
+                        </div>
+                    </div>
                 </div>
-                <div id="directoryGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden"></div>
-                <div id="emptyState" class="hidden text-center py-20 bg-white/50 rounded-[2rem] border border-dashed border-slate-200">
-                    <div class="text-5xl mb-4">🔍</div>
-                    <p class="text-slate-600 font-bold text-xl">No results found</p>
+
+                <div id="directoryGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-4 hidden"></div>
+
+                <!-- Empty state -->
+                <div id="emptyState" class="hidden text-center py-20">
+                    <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
+                        <svg class="w-7 h-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                    <p class="text-slate-900 font-bold text-base">No results found</p>
+                    <p class="text-slate-400 text-sm mt-1">Try adjusting your search or filters</p>
                 </div>
             </main>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-slate-100 mt-20">
-        <div class="max-w-7xl mx-auto px-8 py-16">
-            <div class="flex flex-col items-start">
-                <h2 class="text-3xl font-black text-slate-900 tracking-tight mb-4">Missing a startup?</h2>
-                <p class="text-slate-500 font-medium leading-relaxed max-w-sm">
-                    This directory is community-driven. Help us build the most comprehensive list of innovation in Charlotte.
-                </p>
-                <button onclick="openAddModal()" class="mt-8 px-8 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all active:scale-95">
-                    Add to Index
-                </button>
+    <!-- ═══ Footer ═══ -->
+    <footer class="bg-white border-t border-slate-100 mt-16">
+        <div class="max-w-7xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
+            <div class="flex flex-col sm:flex-row justify-between items-start gap-10">
+                <div class="max-w-sm">
+                    <div class="text-xl font-black tracking-tighter mb-3">
+                        <span class="text-slate-900">CLT</span><span class="text-blue-600">Startups</span>
+                    </div>
+                    <h2 class="text-2xl font-black text-slate-900 tracking-tight mb-2">Missing a startup?</h2>
+                    <p class="text-slate-500 text-sm font-medium leading-relaxed">
+                        This directory is community-driven. Help us build the most comprehensive index of innovation in Charlotte.
+                    </p>
+                    <button onclick="openAddModal()" class="mt-6 px-6 py-2.5 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all active:scale-95">
+                        Add to Index
+                    </button>
+                </div>
+                <div class="text-sm text-slate-400 sm:text-right">
+                    <p class="font-semibold text-slate-500">Charlotte, NC</p>
+                    <p class="mt-1">Community-maintained startup directory</p>
+                </div>
             </div>
-            <div class="pt-8 border-t border-slate-50 mt-16 text-center text-xs text-slate-300 font-bold uppercase tracking-widest">
-                &copy; 2024 Charlotte Startup Index
+            <div class="mt-10 pt-6 border-t border-slate-50 text-center text-[10px] text-slate-300 font-black uppercase tracking-widest">
+                &copy; 2025 Charlotte Startup Index
             </div>
         </div>
     </footer>
 
-    <!-- Modal -->
+    <!-- ═══ Modal ═══ -->
     <div id="uiModal" class="fixed inset-0 z-[100] hidden overflow-y-auto">
         <div class="fixed inset-0 modal-overlay" onclick="closeModal()"></div>
         <div class="relative min-h-screen flex items-center justify-center p-4 sm:p-8">
-            <div id="modalBox" class="bg-white w-full max-w-2xl rounded-[3rem] p-10 md:p-16 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] relative z-10 transition-all">
-                <button onclick="closeModal()" class="absolute top-8 right-8 w-12 h-12 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-900 transition-all">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            <div id="modalBox" class="bg-white w-full max-w-md rounded-3xl p-8 sm:p-10 shadow-2xl relative z-10">
+                <button onclick="closeModal()" class="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-200 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
                 </button>
                 <div id="modalContent"></div>
             </div>
@@ -215,32 +391,30 @@
         let searchQuery = '';
         let locationClusters = {};
 
-        // Location grouping logic
         function categorizeLocation(location) {
             if (!location) return 'Unknown';
             const loc = location.toLowerCase();
-            
             if (loc.includes('south end') || loc.includes('south blvd')) return 'South End';
             if (loc.includes('uptown')) return 'Uptown';
             if (loc.includes('plaza midwood')) return 'Plaza Midwood';
-            if (loc.includes('dilworth') || loc.includes('montford') || loc.includes('park road') || loc.includes('myers park')) return 'Dilworth/Myers Park/Montford/Park Rd';
+            if (loc.includes('dilworth') || loc.includes('montford') || loc.includes('park road') || loc.includes('myers park')) return 'Dilworth / Myers Park';
             if (loc.includes('south park') || loc.includes('southpark')) return 'SouthPark';
             if (loc.includes('ballantyne') || loc.includes('south charlotte') || loc.includes('matthews')) return 'South Charlotte';
-            if (loc.includes('cotswold') || loc.includes('oakhurst')) return 'Cotswold/Oakhurst';
+            if (loc.includes('cotswold') || loc.includes('oakhurst')) return 'Cotswold / Oakhurst';
             if (loc.includes('north charlotte') || loc.includes('university') || loc.includes('concord') || loc.includes('huntersville')) return 'North Charlotte';
-            if (loc.includes('airport')  || loc.includes('renaissance') || loc.includes('billy graham')) return 'Airport Area';
+            if (loc.includes('airport') || loc.includes('renaissance') || loc.includes('billy graham')) return 'Airport Area';
             if (loc.includes('fort mill') || loc.includes('waxhaw') || loc.includes('rock hill') || loc.includes('mooresville') || loc.includes('lake norman')) return 'CLT Adjacent';
-            
-            return 'Other CLT/Remote Team';
+            return 'Other / Remote';
         }
-        
+
         function setLocationFilter(locationName) {
-            if (currentLocationFilter === locationName) {
+            if (locationName === 'all') {
                 currentLocationFilter = 'all';
             } else {
-                currentLocationFilter = locationName;
+                currentLocationFilter = currentLocationFilter === locationName ? 'all' : locationName;
             }
             displayLocationClusters();
+            displayMobileLocationChips();
             render();
         }
 
@@ -255,15 +429,22 @@
                 const csvData = await response.text();
                 resources = parseCSV(csvData);
 
+                // Show live count badge
+                const badge = document.getElementById('heroBadge');
+                document.getElementById('startupCountText').textContent = `${resources.length} startups indexed`;
+                badge.classList.remove('hidden');
+                badge.classList.add('flex', 'fade-up');
+
                 const cats = new Set();
-                resources.forEach(r => { if(r.category) cats.add(r.category); });
+                resources.forEach(r => { if (r.category) cats.add(r.category); });
                 uniqueCategories = Array.from(cats).sort();
 
                 buildLocationClusters();
                 setupFilters();
                 render();
-            } catch (e) { 
-                document.getElementById('loadingState').innerHTML = `<p class="text-red-500 font-bold">Error loading data.</p>`;
+            } catch (e) {
+                document.getElementById('loadingState').innerHTML =
+                    `<div class="col-span-2 text-center py-20"><p class="text-red-500 font-bold text-sm">Error loading data. Please refresh.</p></div>`;
             }
         }
 
@@ -284,71 +465,72 @@
             resources.forEach(r => {
                 if (r.location) {
                     const cluster = categorizeLocation(r.location);
-                    if (!locationClusters[cluster]) {
-                        locationClusters[cluster] = { hq: 0, hub: 0, companies: [] };
-                    }
-                    if (r.location.toLowerCase().includes('hq')) {
-                        locationClusters[cluster].hq++;
-                    } else {
-                        locationClusters[cluster].hub++;
-                    }
+                    if (!locationClusters[cluster]) locationClusters[cluster] = { hq: 0, hub: 0, companies: [] };
+                    if (r.location.toLowerCase().includes('hq')) locationClusters[cluster].hq++;
+                    else locationClusters[cluster].hub++;
                     locationClusters[cluster].companies.push(r.title);
                 }
             });
-
             displayLocationClusters();
+            displayMobileLocationChips();
         }
 
         function displayLocationClusters() {
             const container = document.getElementById('locationClusters');
-            const sorted = Object.entries(locationClusters).sort((a, b) => 
-                (b[1].hq + b[1].hub) - (a[1].hq + a[1].hub)
-            );
-
+            const sorted = Object.entries(locationClusters).sort((a, b) => (b[1].hq + b[1].hub) - (a[1].hq + a[1].hub));
             container.innerHTML = sorted.map(([name, data]) => {
                 const total = data.hq + data.hub;
                 const isActive = currentLocationFilter === name;
                 return `
-                    <div onclick="setLocationFilter('${name}')" class="location-cluster p-3 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/50 transition-all ${isActive ? 'active' : ''}">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-bold text-slate-700">${name}</span>
-                            <span class="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">${total}</span>
+                    <div onclick="setLocationFilter('${name.replace(/'/g, "\\'")}')"
+                         class="location-cluster p-2.5 rounded-xl border ${isActive ? 'border-blue-300 bg-blue-50 active' : 'border-slate-100'}">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-700 leading-snug">${name}</span>
+                            <span class="text-[10px] font-black text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-md ml-2 flex-shrink-0">${total}</span>
                         </div>
-                        <div class="flex items-center gap-3 text-xs text-slate-500">
-                            ${data.hq > 0 ? `<div class="flex items-center gap-1"><div class="pin-hq location-pin"></div><span>${data.hq} HQ</span></div>` : ''}
-                            ${data.hub > 0 ? `<div class="flex items-center gap-1"><div class="pin-hub location-pin"></div><span>${data.hub} Hub</span></div>` : ''}
+                        <div class="flex items-center gap-2.5 mt-1.5">
+                            ${data.hq > 0 ? `<div class="flex items-center gap-1"><div class="pin-hq location-pin"></div><span class="text-[10px] text-slate-400">${data.hq} HQ</span></div>` : ''}
+                            ${data.hub > 0 ? `<div class="flex items-center gap-1"><div class="pin-hub location-pin"></div><span class="text-[10px] text-slate-400">${data.hub} Hub</span></div>` : ''}
                         </div>
-                    </div>
-                `;
+                    </div>`;
+            }).join('');
+        }
+
+        function displayMobileLocationChips() {
+            const container = document.getElementById('mobileLocationChips');
+            if (!container) return;
+            const sorted = Object.entries(locationClusters).sort((a, b) => (b[1].hq + b[1].hub) - (a[1].hq + a[1].hub));
+            const chips = [['All Areas', 'all'], ...sorted.map(([name]) => [name, name])];
+            container.innerHTML = chips.map(([label, value]) => {
+                const isActive = value === 'all' ? currentLocationFilter === 'all' : currentLocationFilter === value;
+                return `
+                    <button onclick="setLocationFilter('${value.replace(/'/g, "\\'")}')"
+                            class="mobile-location-chip px-3 py-1.5 rounded-full border font-bold uppercase ${isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'}">
+                        ${label}
+                    </button>`;
             }).join('');
         }
 
         function setupFilters() {
             const counts = {};
-            resources.forEach(r => {
-                if (r.category) counts[r.category] = (counts[r.category] || 0) + 1;
-            });
+            resources.forEach(r => { if (r.category) counts[r.category] = (counts[r.category] || 0) + 1; });
             let cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-            
-            // Pin "Other" to the end
-            const otherIndex = cats.findIndex(c => c.toLowerCase() === 'other');
-            if (otherIndex > -1) {
-                const other = cats.splice(otherIndex, 1)[0];
-                cats.push(other);
-            }
-            
+            const otherIdx = cats.findIndex(c => c.toLowerCase() === 'other');
+            if (otherIdx > -1) cats.push(cats.splice(otherIdx, 1)[0]);
             cats = ['all', ...cats];
-            const container = document.getElementById('filterContainer');
-            container.innerHTML = cats.map(c => `
-                <button onclick="setFilter('${c}')" class="category-pill px-5 py-2 rounded-full border border-slate-200 bg-white text-[11px] font-bold uppercase tracking-wider hover:border-blue-500 transition-all ${c === 'all' ? 'active' : ''}">
-                    ${c}
-                </button>
-            `).join('');
+
+            document.getElementById('filterContainer').innerHTML = cats.map(c => `
+                <button onclick="setFilter('${c}')" class="category-pill px-4 py-1.5 rounded-full border border-slate-200 bg-white font-bold uppercase tracking-wider hover:border-blue-400 transition-all ${c === 'all' ? 'active' : ''}">
+                    ${c === 'all' ? 'All' : c}
+                </button>`).join('');
         }
 
         function setFilter(cat) {
             currentFilter = cat;
-            document.querySelectorAll('.category-pill').forEach(el => el.classList.toggle('active', el.innerText.toLowerCase() === cat.toLowerCase()));
+            document.querySelectorAll('.category-pill').forEach(el => {
+                const label = el.innerText.trim().toLowerCase();
+                el.classList.toggle('active', cat === 'all' ? label === 'all' : label === cat.toLowerCase());
+            });
             render();
         }
 
@@ -356,111 +538,127 @@
             document.getElementById('loadingState').classList.add('hidden');
             const grid = document.getElementById('directoryGrid');
             const emptyState = document.getElementById('emptyState');
+
+            const q = searchQuery.toLowerCase();
             const filtered = resources.filter(r => {
-                const matchesFilter = (currentFilter === 'all' || r.category === currentFilter);
-                const matchesLocation = (currentLocationFilter === 'all' || categorizeLocation(r.location) === currentLocationFilter);
-                const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                    r.description.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesFilter   = currentFilter === 'all' || r.category === currentFilter;
+                const matchesLocation = currentLocationFilter === 'all' || categorizeLocation(r.location) === currentLocationFilter;
+                const matchesSearch   = !q || r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q);
                 return matchesFilter && matchesLocation && matchesSearch;
             });
-            
+
             if (filtered.length === 0) {
                 grid.classList.add('hidden');
                 emptyState.classList.remove('hidden');
                 return;
             }
-            
+
             emptyState.classList.add('hidden');
             grid.classList.remove('hidden');
-            grid.innerHTML = filtered.map((r) => {
-                const domainStr = r.link ? r.link.replace(/^https?:\/\//, '').split('/')[0] : "";
+
+            grid.innerHTML = filtered.map(r => {
+                const domainStr = r.link ? r.link.replace(/^https?:\/\//, '').split('/')[0] : '';
                 const finalLogoUrl = (r.logo && r.logo.trim()) ? r.logo : `https://logo.clearbit.com/${domainStr}`;
-                
-                // Location badge
-                const locationBadge = r.location ? `
-                    <div class="flex items-center gap-1 text-xs text-slate-500 mt-2">
-                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                const locationLabel = r.location ? categorizeLocation(r.location) : null;
+
+                const locationBadge = locationLabel ? `
+                    <div class="flex items-center gap-1 mt-2">
+                        <svg class="w-2.5 h-2.5 text-slate-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                         </svg>
-                        <span class="font-medium">${r.location}</span>
-                    </div>
-                ` : '';
+                        <span class="text-[10px] text-slate-400 font-medium">${locationLabel}</span>
+                    </div>` : '';
 
                 return `
-                <div class="card-vibrant p-5 flex flex-col h-full">
-                    <span class="absolute top-4 right-4 text-[11px] font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 uppercase tracking-tight z-10">${r.category}</span>
-                    <div class="flex gap-5 items-start mb-auto">
-                        <img src="${finalLogoUrl}" class="w-16 h-16 rounded-2xl object-contain bg-slate-50 border p-2 flex-shrink-0" onerror="this.src='https://ui-avatars.com/api/?name=${r.title}&background=random'">
-                        <div class="flex-1 min-w-0 pr-16">
-                            <a href="${r.link}" target="_blank" class="block font-bold text-slate-900 text-lg truncate hover:text-blue-600 transition-colors">${r.title}</a>
-                            <p class="text-sm text-slate-500 line-clamp-2 leading-relaxed font-medium mt-1">${r.description}</p>
+                <div class="startup-card p-5 flex flex-col">
+                    <div class="flex gap-4 items-start mb-4">
+                        <img src="${finalLogoUrl}"
+                             class="w-12 h-12 rounded-xl object-contain logo-box border border-slate-100 p-1.5 flex-shrink-0"
+                             onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(r.title)}&background=eff6ff&color=2563eb&bold=true'">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-2 mb-1">
+                                <a href="${r.link}" target="_blank" rel="noopener"
+                                   class="font-bold text-slate-900 text-sm hover:text-blue-600 transition-colors leading-snug line-clamp-1">${r.title}</a>
+                                <span class="category-tag text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg flex-shrink-0 whitespace-nowrap">${r.category}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium">${r.description}</p>
                             ${locationBadge}
                         </div>
                     </div>
-                    <div class="mt-4 pt-4 border-t border-slate-50 flex gap-3">
-                        <button onclick='openCompanyProfile()' class="flex-1 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">Company Profile</button>
+                    <div class="mt-auto pt-3.5 border-t border-slate-50">
+                        <button onclick="openCompanyProfile()" class="profile-btn w-full py-2 rounded-xl text-xs font-bold">
+                            View Profile →
+                        </button>
                     </div>
-                </div>
-            `; }).join('');
+                </div>`;
+            }).join('');
         }
 
         function openCompanyProfile() {
-            const modal = document.getElementById('uiModal');
-            const content = document.getElementById('modalContent');
             document.body.style.overflow = 'hidden';
-            modal.classList.remove('hidden');
-            content.innerHTML = `<div class="text-center py-12"><div class="text-5xl mb-6">🔨</div><h2 class="text-4xl font-black text-slate-900">Company Profile</h2><p class="text-slate-500 text-lg mt-4 font-medium">Company profiles are in development. These can be activated and customized by founders when ready. Check back soon for details! </p></div>`;
+            document.getElementById('uiModal').classList.remove('hidden');
+            document.getElementById('modalContent').innerHTML = `
+                <div class="text-center py-6">
+                    <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-blue-50 flex items-center justify-center text-2xl">🔨</div>
+                    <h2 class="text-xl font-black text-slate-900">Company Profiles</h2>
+                    <p class="text-slate-500 text-sm mt-3 font-medium leading-relaxed max-w-xs mx-auto">
+                        Company profiles are in development and will be available for founders to customize soon.
+                    </p>
+                    <button onclick="closeModal()" class="mt-6 px-6 py-2.5 bg-slate-100 text-slate-600 rounded-full font-bold text-sm hover:bg-slate-200 transition-all">Close</button>
+                </div>`;
         }
 
         function openAddModal() {
-            const modal = document.getElementById('uiModal');
-            const content = document.getElementById('modalContent');
             document.body.style.overflow = 'hidden';
-            modal.classList.remove('hidden');
-
+            document.getElementById('uiModal').classList.remove('hidden');
             const catOptions = uniqueCategories.map(c => `<option value="${c}">${c}</option>`).join('');
 
-            content.innerHTML = `
-                <div class="space-y-8">
+            document.getElementById('modalContent').innerHTML = `
+                <div class="space-y-6">
                     <div>
-                        <h2 class="text-4xl font-black text-slate-900 tracking-tight">Submit Startup</h2>
-                        <p class="text-slate-500 font-medium mt-2">Help us grow the index.</p>
+                        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Submit a Startup</h2>
+                        <p class="text-slate-400 text-sm font-medium mt-1">Help grow the Charlotte index.</p>
                     </div>
-                    <form id="addForm" class="space-y-5">
+                    <form id="addForm" class="space-y-4">
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Company Name</label>
-                            <input type="text" name="title" required placeholder="Acme Corp" class="w-full p-5 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-lg">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Company Name</label>
+                            <input type="text" name="title" required placeholder="Acme Corp"
+                                class="w-full p-4 bg-slate-50 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium">
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Industry / Category</label>
-                            <select name="category" required class="w-full p-5 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-lg appearance-none">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Industry</label>
+                            <select name="category" required
+                                class="w-full p-4 bg-slate-50 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium appearance-none">
                                 <option value="" disabled selected>Select Industry</option>
                                 ${catOptions}
                             </select>
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Tagline</label>
-                            <input type="text" name="description" required placeholder="What are you building?" class="w-full p-5 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-lg">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Tagline</label>
+                            <input type="text" name="description" required placeholder="What are you building?"
+                                class="w-full p-4 bg-slate-50 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium">
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Website</label>
-                            <input type="text" name="link" placeholder="acme.com" required class="w-full p-5 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-lg">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Website</label>
+                            <input type="text" name="link" required placeholder="acme.com"
+                                class="w-full p-4 bg-slate-50 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium">
                         </div>
-                        <div id="formErrorMessage" class="hidden text-red-600 bg-red-50 p-4 rounded-xl text-sm font-bold"></div>
-                        <button type="submit" id="submitBtn" class="w-full py-6 bg-blue-600 text-white rounded-[1.5rem] font-bold mt-6 shadow-xl shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all text-lg">Submit Entry</button>
+                        <div id="formErrorMessage" class="hidden text-red-600 bg-red-50 p-3 rounded-xl text-xs font-bold"></div>
+                        <button type="submit" id="submitBtn"
+                            class="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all text-sm">
+                            Submit Entry
+                        </button>
                     </form>
-                </div>
-            `;
+                </div>`;
 
             document.getElementById('addForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const btn = document.getElementById('submitBtn');
                 const errorMsg = document.getElementById('formErrorMessage');
-                
                 btn.disabled = true;
-                btn.innerText = 'Sending...';
+                btn.innerText = 'Sending…';
                 errorMsg.classList.add('hidden');
-                
+
                 const formData = new FormData(e.target);
                 const data = {
                     title: formData.get('title'),
@@ -478,13 +676,12 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(data)
                         });
-                        
-                        content.innerHTML = `
-                            <div class="text-center py-12">
-                                <div class="text-5xl mb-6">✅</div>
-                                <h2 class="text-4xl font-black text-slate-900">Success!</h2>
-                                <p class="text-slate-500 text-lg mt-4 font-medium">Your entry has been sent for review.</p>
-                                <button onclick="closeModal()" class="mt-8 px-8 py-3 bg-slate-100 text-slate-600 rounded-full font-bold">Close</button>
+                        document.getElementById('modalContent').innerHTML = `
+                            <div class="text-center py-6">
+                                <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-green-50 flex items-center justify-center text-2xl">✅</div>
+                                <h2 class="text-xl font-black text-slate-900">Submitted!</h2>
+                                <p class="text-slate-500 text-sm mt-2 font-medium">Your entry has been sent for review.</p>
+                                <button onclick="closeModal()" class="mt-6 px-6 py-2.5 bg-slate-100 text-slate-600 rounded-full font-bold text-sm hover:bg-slate-200 transition-all">Close</button>
                             </div>`;
                     } catch (err) {
                         if (retries > 0) {
@@ -492,12 +689,11 @@
                         } else {
                             btn.disabled = false;
                             btn.innerText = 'Submit Entry';
-                            errorMsg.innerText = "Submission failed. Please check your connection.";
+                            errorMsg.innerText = 'Submission failed. Please check your connection.';
                             errorMsg.classList.remove('hidden');
                         }
                     }
                 };
-
                 await submitWithRetry();
             };
         }
