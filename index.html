@@ -5,373 +5,312 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CLT Startups | Directory</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --blue: #2563eb;
-            --blue-light: #eff6ff;
-            --navy: #0f172a;
+            --bg: #f5f2eb;
+            --dark: #0a0f1e;
+            --accent: #00e5a0;
+            --surface: #ffffff;
+            --border: #e8e4da;
+            --text: #0a0f1e;
+            --muted: #6b7280;
         }
 
         html { scroll-behavior: smooth; }
-
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* ── Hero ── */
-        .hero-section {
-            background: white;
-            position: relative;
-            overflow: hidden;
-        }
-        .hero-section::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(ellipse 80% 55% at 50% -10%, rgba(37,99,235,0.09) 0%, transparent 65%),
-                radial-gradient(ellipse 35% 35% at 95% 95%, rgba(99,102,241,0.06) 0%, transparent 50%);
-            pointer-events: none;
-        }
-
-        /* ── Cards ── */
+        /* Cards */
         .startup-card {
-            transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-            background: white;
-            border: 1px solid #e2e8f0;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--surface);
+            border: 1.5px solid var(--border);
             border-radius: 16px;
             position: relative;
             overflow: hidden;
         }
-        .startup-card::after {
+        .startup-card::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--blue) 0%, #6366f1 100%);
-            opacity: 0;
-            transition: opacity 0.22s;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--card-accent, #6366f1);
         }
         .startup-card:hover {
             transform: translateY(-3px);
-            border-color: #bfdbfe;
-            box-shadow: 0 10px 36px -8px rgba(37,99,235,0.13), 0 4px 12px -4px rgba(0,0,0,0.05);
+            border-color: transparent;
+            box-shadow: 0 20px 40px -12px rgba(10, 15, 30, 0.12), 0 0 0 1.5px var(--card-accent, #6366f1);
         }
-        .startup-card:hover::after { opacity: 1; }
 
-        /* ── Filter pills ── */
+        /* Category pills */
         .category-pill {
             white-space: nowrap;
-            transition: all 0.18s;
-            font-size: 10px;
+            transition: all 0.2s;
+            font-size: 11px;
+            font-weight: 700;
             letter-spacing: 0.05em;
         }
         .category-pill.active {
-            background: var(--blue);
-            color: white;
-            border-color: var(--blue);
-            box-shadow: 0 2px 8px rgba(37,99,235,0.28);
+            background: var(--dark) !important;
+            color: white !important;
+            border-color: var(--dark) !important;
+        }
+        .category-pill:not(.active):hover {
+            background: var(--dark) !important;
+            color: white !important;
+            border-color: var(--dark) !important;
         }
 
+        /* Utilities */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* ── Spinner ── */
-        .spinner { animation: spin 0.75s linear infinite; }
+        .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ── Skeleton ── */
-        @keyframes shimmer {
-            0%   { background-position: -200% 0; }
-            100% { background-position:  200% 0; }
-        }
-        .skeleton {
-            background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 50%, #f1f5f9 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.4s infinite;
-            border-radius: 8px;
-        }
-
-        /* ── Modal overlay ── */
+        /* Modal */
         .modal-overlay {
-            background: rgba(15,23,42,0.45);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            background: rgba(10, 15, 30, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
 
-        /* ── Fade-up ── */
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        .fade-up { animation: fadeUp 0.35s ease both; }
+        main { min-height: 80vh; }
 
-        /* ── Gradient text ── */
+        /* Sidebar */
+        .map-sidebar {
+            position: sticky;
+            top: 110px;
+            height: fit-content;
+        }
+        .location-cluster {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            background: white;
+        }
+        .location-cluster:hover,
+        .location-cluster.active {
+            border-color: var(--dark);
+            background: var(--dark);
+        }
+        .location-cluster:hover .cluster-name,
+        .location-cluster.active .cluster-name { color: white !important; }
+        .location-cluster:hover .cluster-count,
+        .location-cluster.active .cluster-count { background: rgba(255,255,255,0.15) !important; color: white !important; }
+        .location-cluster:hover .cluster-sub,
+        .location-cluster.active .cluster-sub { color: rgba(255,255,255,0.55) !important; }
+
+        .location-pin { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .pin-hq { background: var(--accent); }
+        .pin-hub { background: white; border: 2px solid var(--accent); }
+
+        @media (max-width: 1280px) { .map-sidebar { display: none; } }
+
+        /* Hero decorative grid */
+        .hero-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+        }
+
+        /* Gradient text */
         .gradient-text {
-            background: linear-gradient(130deg, #1e3a8a 0%, #2563eb 55%, #6366f1 100%);
+            background: linear-gradient(120deg, var(--accent) 0%, #60efff 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
-        /* ── Stat badge ── */
-        .stat-badge {
-            background: linear-gradient(135deg, rgba(37,99,235,0.07), rgba(99,102,241,0.07));
-            border: 1px solid rgba(37,99,235,0.14);
+        /* Sticky search bar */
+        #explore {
+            background: rgba(245, 242, 235, 0.95);
+            border-bottom: 1.5px solid var(--border);
         }
 
-        /* ── Search bar ── */
-        .search-wrap:focus-within {
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.14);
-            border-color: #93c5fd;
+        /* Pulse dot */
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.85); }
         }
-
-        main { min-height: 80vh; }
-
-        /* ── Desktop sidebar ── */
-        .map-sidebar {
-            position: sticky;
-            top: 168px;
-            height: fit-content;
-        }
-        .location-cluster {
-            transition: background 0.18s, border-color 0.18s;
-            cursor: pointer;
-        }
-        .location-cluster:hover  { background: #f0f7ff; border-color: #bfdbfe; }
-        .location-cluster.active { border-color: var(--blue); background: var(--blue-light); }
-
-        .location-pin {
-            width: 7px; height: 7px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .pin-hq  { background: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,0.18); }
-        .pin-hub { background: white; border: 2px solid var(--blue); }
-
-        /* ── Mobile location chips (visible < 1280px) ── */
-        .mobile-location-chip {
-            white-space: nowrap;
-            transition: all 0.18s;
-            cursor: pointer;
-            font-size: 10px;
-            letter-spacing: 0.04em;
-        }
-        .mobile-location-chip.active {
-            background: var(--blue);
-            color: white;
-            border-color: var(--blue);
-        }
-
-        @media (max-width: 1279px) { .map-sidebar { display: none; } }
-        @media (min-width: 1280px) { .mobile-location-row { display: none !important; } }
-
-        /* ── Profile button ── */
-        .profile-btn {
-            transition: all 0.18s;
-            color: #64748b;
-            background: #f8fafc;
-        }
-        .profile-btn:hover { background: var(--blue); color: white; }
-
-        /* ── Category tag on card ── */
-        .category-tag {
-            font-size: 9px;
-            letter-spacing: 0.06em;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        /* ── Logo container ── */
-        .logo-box {
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-        }
+        .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- ═══ Nav ═══ -->
-    <nav class="bg-white border-b border-slate-100 px-5 sm:px-8 py-4">
+    <!-- Nav -->
+    <nav style="background: var(--dark);" class="px-6 py-4 relative z-10">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2.5">
-                <div class="text-xl font-black tracking-tighter">
-                    <span class="text-slate-900">CLT</span><span class="text-blue-600">Startups</span>
-                </div>
-                <span class="hidden sm:inline-flex items-center text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-full">
-                    Charlotte, NC
-                </span>
+            <div class="text-xl font-black tracking-tight">
+                <span class="text-white">CLT</span><span style="color: var(--accent);">Startups</span>
             </div>
-            <button onclick="openAddModal()" class="text-xs font-bold px-4 py-2.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all active:scale-95 shadow-sm shadow-blue-200/60">
-                + Submit Startup
-            </button>
+            <div class="flex items-center gap-4">
+                <span class="hidden sm:block text-xs font-bold uppercase tracking-widest" style="color: rgba(255,255,255,0.35);">Charlotte · 704</span>
+                <button onclick="openAddModal()" style="background: var(--accent); color: var(--dark);" class="px-5 py-2 rounded-full text-sm font-black hover:opacity-90 transition-all active:scale-95">
+                    + Submit
+                </button>
+            </div>
         </div>
     </nav>
 
-    <!-- ═══ Hero ═══ -->
-    <section class="hero-section border-b border-slate-100 py-16 sm:py-24 px-5 sm:px-8">
-        <div class="max-w-4xl mx-auto text-center relative">
+    <!-- Hero -->
+    <section style="background: var(--dark);" class="relative overflow-hidden px-6 py-20 md:py-28">
+        <div class="hero-grid"></div>
+        <!-- Decorative 704 -->
+        <div class="absolute right-[-2%] top-1/2 -translate-y-1/2 font-black leading-none select-none pointer-events-none"
+             style="font-size: clamp(140px, 22vw, 340px); color: rgba(255,255,255,0.025); letter-spacing: -0.05em;">704</div>
 
-            <!-- Live count badge -->
-            <div id="heroBadge" class="hidden justify-center mb-7">
-                <div class="stat-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full">
-                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block"></span>
-                    <span class="text-[11px] font-bold text-blue-700" id="startupCountText"></span>
-                </div>
+        <div class="max-w-7xl mx-auto relative z-10">
+            <!-- Live badge -->
+            <div class="inline-flex items-center gap-2 mb-8"
+                 style="background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.2); border-radius: 100px; padding: 6px 14px;">
+                <div class="pulse-dot" style="width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0;"></div>
+                <span style="color: var(--accent);" class="text-xs font-bold uppercase tracking-widest">Live Index</span>
             </div>
 
-            <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black text-slate-900 tracking-tighter mb-5 leading-[1.05]">
-                A living index of<br class="hidden sm:block">
-                <span class="gradient-text">Charlotte startups.</span>
+            <h1 class="font-black text-white tracking-tighter leading-none mb-6"
+                style="font-size: clamp(2.8rem, 7vw, 5.5rem);">
+                The Queen City's<br>
+                <span class="gradient-text">startup scene,</span><br>
+                indexed.
             </h1>
-            <p class="text-base sm:text-lg text-slate-500 font-medium max-w-xl mx-auto leading-relaxed">
-                Explore startups building in the Queen City — and help keep the index accurate.
+
+            <p class="text-lg md:text-xl font-medium max-w-lg mb-10" style="color: rgba(255,255,255,0.45);">
+                A community-built directory of startups building in Charlotte — and the surrounding region.
             </p>
-            <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button onclick="openAddModal()" class="px-8 py-3.5 bg-slate-900 text-white rounded-full font-bold text-sm hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/10 active:scale-95 w-full sm:w-auto">
-                    Submit Startup
-                </button>
-                <a href="#explore" class="px-8 py-3.5 bg-white text-slate-700 border border-slate-200 rounded-full font-bold text-sm hover:border-blue-300 hover:text-blue-600 transition-all active:scale-95 w-full sm:w-auto">
-                    Explore Index →
+
+            <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-12">
+                <a href="#explore" style="background: var(--accent); color: var(--dark);"
+                   class="px-8 py-3.5 rounded-full font-black text-sm hover:opacity-90 transition-all active:scale-95 inline-block">
+                    Explore the Index →
                 </a>
+                <button onclick="openAddModal()"
+                        class="px-8 py-3.5 rounded-full font-bold text-sm transition-all active:scale-95"
+                        style="border: 1.5px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.65); background: transparent;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.08)'"
+                        onmouseout="this.style.background='transparent'">
+                    Add your startup
+                </button>
+            </div>
+
+            <!-- Live stats -->
+            <div class="flex flex-wrap gap-3">
+                <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55);">
+                    <span id="heroCount" class="text-white font-black">—</span> startups
+                </div>
+                <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55);">
+                    <span id="heroCats" class="text-white font-black">—</span> industries
+                </div>
+                <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55);">
+                    <span class="text-white font-black">10+</span> neighborhoods
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- ═══ Sticky Search + Filters ═══ -->
-    <header id="explore" class="sticky top-0 z-50 bg-[#f8fafc]/96 backdrop-blur-md border-b border-slate-200/80">
-        <div class="max-w-7xl mx-auto px-5 sm:px-8 py-4">
-            <div class="flex flex-col gap-3">
-                <!-- Search -->
-                <div class="search-wrap relative bg-white border border-slate-200 rounded-xl transition-all overflow-hidden">
-                    <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    <!-- Sticky Search + Filters -->
+    <header id="explore" class="sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex flex-col gap-3 w-full">
+                <div class="relative w-full">
+                    <input type="text" id="searchInput"
+                           placeholder="Search startups by name, industry, keyword..."
+                           class="w-full pl-11 pr-4 py-3 rounded-xl outline-none transition-all text-sm font-medium"
+                           style="background: white; border: 1.5px solid var(--border); color: var(--text);"
+                           onfocus="this.style.borderColor='var(--dark)'"
+                           onblur="this.style.borderColor='var(--border)'">
+                    <svg class="absolute left-3.5 top-3.5 h-5 w-5" style="color: #9ca3af;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <input type="text" id="searchInput" placeholder="Search startups, industries, keywords…"
-                        class="w-full pl-10 pr-4 py-3 bg-transparent text-sm outline-none placeholder:text-slate-400">
                 </div>
-                <!-- Category filter pills -->
-                <div id="filterContainer" class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"></div>
-            </div>
-        </div>
-
-        <!-- Mobile: location chip row (hidden on xl+) -->
-        <div class="mobile-location-row border-t border-slate-100 bg-white/80">
-            <div class="max-w-7xl mx-auto px-5 sm:px-8 py-2">
-                <div id="mobileLocationChips" class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"></div>
+                <div id="filterContainer" class="flex gap-2 overflow-x-auto no-scrollbar w-full pb-1"></div>
             </div>
         </div>
     </header>
 
-    <!-- ═══ Main layout ═══ -->
-    <div class="max-w-7xl mx-auto px-5 sm:px-8 py-8 w-full flex-grow">
-        <div class="flex gap-7">
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-6 py-8 w-full flex-grow">
+        <div class="flex gap-8">
 
-            <!-- Desktop sidebar -->
-            <aside class="map-sidebar w-60 flex-shrink-0">
-                <div class="bg-white rounded-2xl p-5 border border-slate-200">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3.5 flex items-center gap-1.5">
-                        <svg class="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+            <!-- Sidebar -->
+            <aside class="map-sidebar w-64 flex-shrink-0">
+                <div class="rounded-2xl p-5" style="background: white; border: 1.5px solid var(--border);">
+                    <h3 class="text-xs font-black uppercase tracking-wider mb-4 flex items-center gap-2" style="color: var(--dark);">
+                        <svg class="w-4 h-4" style="color: var(--accent);" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                         </svg>
                         Where We Build
-                    </p>
-                    <div id="locationClusters" class="space-y-1.5"></div>
+                    </h3>
+                    <div id="locationClusters" class="space-y-2"></div>
                 </div>
             </aside>
 
             <!-- Grid -->
-            <main class="flex-1 min-w-0">
-
-                <!-- Skeleton loading -->
-                <div id="loadingState" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div class="bg-white border border-slate-200 rounded-2xl p-5 flex gap-4">
-                        <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
-                        <div class="flex-1 space-y-2 pt-1">
-                            <div class="skeleton h-3.5 w-2/3 rounded"></div>
-                            <div class="skeleton h-3 w-full rounded"></div>
-                            <div class="skeleton h-3 w-4/5 rounded"></div>
-                        </div>
-                    </div>
-                    <div class="bg-white border border-slate-200 rounded-2xl p-5 flex gap-4">
-                        <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
-                        <div class="flex-1 space-y-2 pt-1">
-                            <div class="skeleton h-3.5 w-3/4 rounded"></div>
-                            <div class="skeleton h-3 w-full rounded"></div>
-                            <div class="skeleton h-3 w-3/5 rounded"></div>
-                        </div>
-                    </div>
-                    <div class="bg-white border border-slate-200 rounded-2xl p-5 flex gap-4">
-                        <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
-                        <div class="flex-1 space-y-2 pt-1">
-                            <div class="skeleton h-3.5 w-1/2 rounded"></div>
-                            <div class="skeleton h-3 w-full rounded"></div>
-                            <div class="skeleton h-3 w-5/6 rounded"></div>
-                        </div>
-                    </div>
-                    <div class="bg-white border border-slate-200 rounded-2xl p-5 flex gap-4">
-                        <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
-                        <div class="flex-1 space-y-2 pt-1">
-                            <div class="skeleton h-3.5 w-2/3 rounded"></div>
-                            <div class="skeleton h-3 w-full rounded"></div>
-                            <div class="skeleton h-3 w-4/5 rounded"></div>
-                        </div>
-                    </div>
+            <main class="flex-1">
+                <div id="loadingState" class="flex flex-col items-center py-24">
+                    <div class="w-8 h-8 border-4 rounded-full spinner"
+                         style="border-color: var(--border); border-top-color: var(--dark);"></div>
                 </div>
-
                 <div id="directoryGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-4 hidden"></div>
-
-                <!-- Empty state -->
-                <div id="emptyState" class="hidden text-center py-20">
-                    <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
-                        <svg class="w-7 h-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                    </div>
-                    <p class="text-slate-900 font-bold text-base">No results found</p>
-                    <p class="text-slate-400 text-sm mt-1">Try adjusting your search or filters</p>
+                <div id="emptyState" class="hidden text-center py-24 rounded-3xl border-2 border-dashed" style="border-color: var(--border);">
+                    <div class="text-4xl mb-3">🔍</div>
+                    <p class="font-black text-lg" style="color: var(--dark);">No results found</p>
+                    <p class="text-sm mt-1" style="color: var(--muted);">Try a different search or filter</p>
                 </div>
             </main>
         </div>
     </div>
 
-    <!-- ═══ Footer ═══ -->
-    <footer class="bg-white border-t border-slate-100 mt-16">
-        <div class="max-w-7xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
-            <div class="flex flex-col sm:flex-row justify-between items-start gap-10">
-                <div class="max-w-sm">
-                    <div class="text-xl font-black tracking-tighter mb-3">
-                        <span class="text-slate-900">CLT</span><span class="text-blue-600">Startups</span>
+    <!-- Footer -->
+    <footer style="background: var(--dark);" class="mt-20 relative overflow-hidden">
+        <div class="hero-grid opacity-40"></div>
+        <div class="max-w-7xl mx-auto px-6 py-16 relative z-10">
+            <div class="flex flex-col md:flex-row justify-between items-start gap-12">
+                <div>
+                    <div class="text-2xl font-black tracking-tight mb-3">
+                        <span class="text-white">CLT</span><span style="color: var(--accent);">Startups</span>
                     </div>
-                    <h2 class="text-2xl font-black text-slate-900 tracking-tight mb-2">Missing a startup?</h2>
-                    <p class="text-slate-500 text-sm font-medium leading-relaxed">
-                        This directory is community-driven. Help us build the most comprehensive index of innovation in Charlotte.
+                    <p class="font-medium max-w-xs text-sm" style="color: rgba(255,255,255,0.35);">
+                        A living index of startups building in Charlotte. Community-driven, always free.
                     </p>
-                    <button onclick="openAddModal()" class="mt-6 px-6 py-2.5 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all active:scale-95">
+                </div>
+                <div>
+                    <h2 class="text-xl font-black text-white mb-2">Missing a startup?</h2>
+                    <p class="text-sm font-medium mb-5" style="color: rgba(255,255,255,0.4);">Help keep the index accurate and complete.</p>
+                    <button onclick="openAddModal()"
+                            style="background: var(--accent); color: var(--dark);"
+                            class="px-6 py-3 rounded-full font-black text-sm hover:opacity-90 transition-all active:scale-95">
                         Add to Index
                     </button>
                 </div>
-                <div class="text-sm text-slate-400 sm:text-right">
-                    <p class="font-semibold text-slate-500">Charlotte, NC</p>
-                    <p class="mt-1">Community-maintained startup directory</p>
-                </div>
             </div>
-            <div class="mt-10 pt-6 border-t border-slate-50 text-center text-[10px] text-slate-300 font-black uppercase tracking-widest">
-                &copy; 2025 Charlotte Startup Index
+            <div class="mt-16 pt-8 border-t text-center text-xs font-bold uppercase tracking-widest"
+                 style="border-color: rgba(255,255,255,0.07); color: rgba(255,255,255,0.2);">
+                &copy; 2025 Charlotte Startup Index · Built in the Queen City
             </div>
         </div>
     </footer>
 
-    <!-- ═══ Modal ═══ -->
+    <!-- Modal -->
     <div id="uiModal" class="fixed inset-0 z-[100] hidden overflow-y-auto">
         <div class="fixed inset-0 modal-overlay" onclick="closeModal()"></div>
         <div class="relative min-h-screen flex items-center justify-center p-4 sm:p-8">
-            <div id="modalBox" class="bg-white w-full max-w-md rounded-3xl p-8 sm:p-10 shadow-2xl relative z-10">
-                <button onclick="closeModal()" class="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-200 transition-all">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div id="modalBox" class="bg-white w-full max-w-2xl rounded-3xl p-10 md:p-14 shadow-2xl relative z-10">
+                <button onclick="closeModal()"
+                        class="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full transition-all hover:opacity-70"
+                        style="background: var(--bg); color: var(--muted);">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
@@ -383,6 +322,15 @@
     <script>
         const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTNHcumKyuDJq7RH4oKSp-ANUo97oODMgmy3UBFKRISv-F5bnGawPcc_bTRyRm_Nqm0Oa44WzQl3Qcg/pub?gid=0&single=true&output=csv';
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJMWzAyzORr1SqFlyKmerxhQ3LoeFnPNJmzZzk_k5yG3gResiW7V1QAZlxQ1zUyBhSCw/exec';
+
+        // Category color palette — deterministic from name
+        const CAT_PALETTE = ['#6366f1','#10b981','#f59e0b','#ec4899','#0ea5e9','#f97316','#8b5cf6','#14b8a6','#ef4444','#a855f7','#84cc16'];
+        function getCatColor(cat) {
+            if (!cat) return CAT_PALETTE[0];
+            let h = 0;
+            for (let c of cat) h = ((h << 5) - h) + c.charCodeAt(0);
+            return CAT_PALETTE[Math.abs(h) % CAT_PALETTE.length];
+        }
 
         let resources = [];
         let uniqueCategories = [];
@@ -397,24 +345,19 @@
             if (loc.includes('south end') || loc.includes('south blvd')) return 'South End';
             if (loc.includes('uptown')) return 'Uptown';
             if (loc.includes('plaza midwood')) return 'Plaza Midwood';
-            if (loc.includes('dilworth') || loc.includes('montford') || loc.includes('park road') || loc.includes('myers park')) return 'Dilworth / Myers Park';
+            if (loc.includes('dilworth') || loc.includes('montford') || loc.includes('park road') || loc.includes('myers park')) return 'Dilworth/Myers Park/Montford/Park Rd';
             if (loc.includes('south park') || loc.includes('southpark')) return 'SouthPark';
             if (loc.includes('ballantyne') || loc.includes('south charlotte') || loc.includes('matthews')) return 'South Charlotte';
-            if (loc.includes('cotswold') || loc.includes('oakhurst')) return 'Cotswold / Oakhurst';
+            if (loc.includes('cotswold') || loc.includes('oakhurst')) return 'Cotswold/Oakhurst';
             if (loc.includes('north charlotte') || loc.includes('university') || loc.includes('concord') || loc.includes('huntersville')) return 'North Charlotte';
             if (loc.includes('airport') || loc.includes('renaissance') || loc.includes('billy graham')) return 'Airport Area';
             if (loc.includes('fort mill') || loc.includes('waxhaw') || loc.includes('rock hill') || loc.includes('mooresville') || loc.includes('lake norman')) return 'CLT Adjacent';
-            return 'Other / Remote';
+            return 'Other CLT/Remote Team';
         }
 
         function setLocationFilter(locationName) {
-            if (locationName === 'all') {
-                currentLocationFilter = 'all';
-            } else {
-                currentLocationFilter = currentLocationFilter === locationName ? 'all' : locationName;
-            }
+            currentLocationFilter = (currentLocationFilter === locationName) ? 'all' : locationName;
             displayLocationClusters();
-            displayMobileLocationChips();
             render();
         }
 
@@ -429,22 +372,18 @@
                 const csvData = await response.text();
                 resources = parseCSV(csvData);
 
-                // Show live count badge
-                const badge = document.getElementById('heroBadge');
-                document.getElementById('startupCountText').textContent = `${resources.length} startups indexed`;
-                badge.classList.remove('hidden');
-                badge.classList.add('flex', 'fade-up');
-
                 const cats = new Set();
                 resources.forEach(r => { if (r.category) cats.add(r.category); });
                 uniqueCategories = Array.from(cats).sort();
+
+                document.getElementById('heroCount').textContent = resources.length;
+                document.getElementById('heroCats').textContent = uniqueCategories.length;
 
                 buildLocationClusters();
                 setupFilters();
                 render();
             } catch (e) {
-                document.getElementById('loadingState').innerHTML =
-                    `<div class="col-span-2 text-center py-20"><p class="text-red-500 font-bold text-sm">Error loading data. Please refresh.</p></div>`;
+                document.getElementById('loadingState').innerHTML = `<p class="font-bold" style="color: #ef4444;">Error loading data.</p>`;
             }
         }
 
@@ -472,7 +411,6 @@
                 }
             });
             displayLocationClusters();
-            displayMobileLocationChips();
         }
 
         function displayLocationClusters() {
@@ -482,32 +420,17 @@
                 const total = data.hq + data.hub;
                 const isActive = currentLocationFilter === name;
                 return `
-                    <div onclick="setLocationFilter('${name.replace(/'/g, "\\'")}')"
-                         class="location-cluster p-2.5 rounded-xl border ${isActive ? 'border-blue-300 bg-blue-50 active' : 'border-slate-100'}">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-semibold text-slate-700 leading-snug">${name}</span>
-                            <span class="text-[10px] font-black text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-md ml-2 flex-shrink-0">${total}</span>
+                    <div onclick="setLocationFilter('${name}')" class="location-cluster p-3 ${isActive ? 'active' : ''}">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="cluster-name text-sm font-bold truncate pr-2" style="color: var(--dark);">${name}</span>
+                            <span class="cluster-count text-xs font-black px-2 py-0.5 rounded-full flex-shrink-0" style="background: var(--bg); color: var(--dark);">${total}</span>
                         </div>
-                        <div class="flex items-center gap-2.5 mt-1.5">
-                            ${data.hq > 0 ? `<div class="flex items-center gap-1"><div class="pin-hq location-pin"></div><span class="text-[10px] text-slate-400">${data.hq} HQ</span></div>` : ''}
-                            ${data.hub > 0 ? `<div class="flex items-center gap-1"><div class="pin-hub location-pin"></div><span class="text-[10px] text-slate-400">${data.hub} Hub</span></div>` : ''}
+                        <div class="cluster-sub flex items-center gap-3 text-xs font-medium" style="color: var(--muted);">
+                            ${data.hq > 0 ? `<div class="flex items-center gap-1"><div class="pin-hq location-pin"></div><span>${data.hq} HQ</span></div>` : ''}
+                            ${data.hub > 0 ? `<div class="flex items-center gap-1"><div class="pin-hub location-pin"></div><span>${data.hub}</span></div>` : ''}
                         </div>
-                    </div>`;
-            }).join('');
-        }
-
-        function displayMobileLocationChips() {
-            const container = document.getElementById('mobileLocationChips');
-            if (!container) return;
-            const sorted = Object.entries(locationClusters).sort((a, b) => (b[1].hq + b[1].hub) - (a[1].hq + a[1].hub));
-            const chips = [['All Areas', 'all'], ...sorted.map(([name]) => [name, name])];
-            container.innerHTML = chips.map(([label, value]) => {
-                const isActive = value === 'all' ? currentLocationFilter === 'all' : currentLocationFilter === value;
-                return `
-                    <button onclick="setLocationFilter('${value.replace(/'/g, "\\'")}')"
-                            class="mobile-location-chip px-3 py-1.5 rounded-full border font-bold uppercase ${isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'}">
-                        ${label}
-                    </button>`;
+                    </div>
+                `;
             }).join('');
         }
 
@@ -515,21 +438,29 @@
             const counts = {};
             resources.forEach(r => { if (r.category) counts[r.category] = (counts[r.category] || 0) + 1; });
             let cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-            const otherIdx = cats.findIndex(c => c.toLowerCase() === 'other');
-            if (otherIdx > -1) cats.push(cats.splice(otherIdx, 1)[0]);
+            const otherIndex = cats.findIndex(c => c.toLowerCase() === 'other');
+            if (otherIndex > -1) { const other = cats.splice(otherIndex, 1)[0]; cats.push(other); }
             cats = ['all', ...cats];
 
-            document.getElementById('filterContainer').innerHTML = cats.map(c => `
-                <button onclick="setFilter('${c}')" class="category-pill px-4 py-1.5 rounded-full border border-slate-200 bg-white font-bold uppercase tracking-wider hover:border-blue-400 transition-all ${c === 'all' ? 'active' : ''}">
+            const container = document.getElementById('filterContainer');
+            container.innerHTML = cats.map(c => `
+                <button onclick="setFilter('${c}')"
+                        class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase ${c === 'all' ? 'active' : ''}"
+                        style="border-color: var(--border); background: white; color: var(--muted);">
                     ${c === 'all' ? 'All' : c}
-                </button>`).join('');
+                </button>
+            `).join('');
         }
 
         function setFilter(cat) {
             currentFilter = cat;
             document.querySelectorAll('.category-pill').forEach(el => {
                 const label = el.innerText.trim().toLowerCase();
-                el.classList.toggle('active', cat === 'all' ? label === 'all' : label === cat.toLowerCase());
+                const isActive = label === cat.toLowerCase() || (cat === 'all' && label === 'all');
+                el.classList.toggle('active', isActive);
+                el.style.background = isActive ? 'var(--dark)' : 'white';
+                el.style.color = isActive ? 'white' : 'var(--muted)';
+                el.style.borderColor = isActive ? 'var(--dark)' : 'var(--border)';
             });
             render();
         }
@@ -539,11 +470,11 @@
             const grid = document.getElementById('directoryGrid');
             const emptyState = document.getElementById('emptyState');
 
-            const q = searchQuery.toLowerCase();
             const filtered = resources.filter(r => {
-                const matchesFilter   = currentFilter === 'all' || r.category === currentFilter;
-                const matchesLocation = currentLocationFilter === 'all' || categorizeLocation(r.location) === currentLocationFilter;
-                const matchesSearch   = !q || r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q);
+                const matchesFilter = (currentFilter === 'all' || r.category === currentFilter);
+                const matchesLocation = (currentLocationFilter === 'all' || categorizeLocation(r.location) === currentLocationFilter);
+                const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                      r.description.toLowerCase().includes(searchQuery.toLowerCase());
                 return matchesFilter && matchesLocation && matchesSearch;
             });
 
@@ -559,104 +490,133 @@
             grid.innerHTML = filtered.map(r => {
                 const domainStr = r.link ? r.link.replace(/^https?:\/\//, '').split('/')[0] : '';
                 const finalLogoUrl = (r.logo && r.logo.trim()) ? r.logo : `https://logo.clearbit.com/${domainStr}`;
-                const locationLabel = r.location ? categorizeLocation(r.location) : null;
+                const catColor = getCatColor(r.category);
 
-                const locationBadge = locationLabel ? `
-                    <div class="flex items-center gap-1 mt-2">
-                        <svg class="w-2.5 h-2.5 text-slate-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                const locationBadge = r.location ? `
+                    <div class="flex items-center gap-1 text-xs mt-2 font-medium" style="color: var(--muted);">
+                        <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                         </svg>
-                        <span class="text-[10px] text-slate-400 font-medium">${locationLabel}</span>
-                    </div>` : '';
+                        <span class="truncate">${r.location}</span>
+                    </div>
+                ` : '';
 
                 return `
-                <div class="startup-card p-5 flex flex-col">
+                <div class="startup-card p-5 flex flex-col h-full" style="--card-accent: ${catColor};">
                     <div class="flex gap-4 items-start mb-4">
                         <img src="${finalLogoUrl}"
-                             class="w-12 h-12 rounded-xl object-contain logo-box border border-slate-100 p-1.5 flex-shrink-0"
-                             onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(r.title)}&background=eff6ff&color=2563eb&bold=true'">
+                             class="w-14 h-14 rounded-xl object-contain flex-shrink-0 p-1.5"
+                             style="background: var(--bg); border: 1.5px solid var(--border);"
+                             onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(r.title)}&background=random&size=56'">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-start justify-between gap-2 mb-1">
-                                <a href="${r.link}" target="_blank" rel="noopener"
-                                   class="font-bold text-slate-900 text-sm hover:text-blue-600 transition-colors leading-snug line-clamp-1">${r.title}</a>
-                                <span class="category-tag text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg flex-shrink-0 whitespace-nowrap">${r.category}</span>
+                                <a href="${r.link}" target="_blank"
+                                   class="font-black text-base leading-tight hover:opacity-60 transition-opacity"
+                                   style="color: var(--dark);">${r.title}</a>
+                                <span class="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md flex-shrink-0"
+                                      style="color: ${catColor}; background: ${catColor}18; border: 1px solid ${catColor}28;">${r.category}</span>
                             </div>
-                            <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium">${r.description}</p>
+                            <p class="text-sm leading-relaxed" style="color: var(--muted);">${r.description}</p>
                             ${locationBadge}
                         </div>
                     </div>
-                    <div class="mt-auto pt-3.5 border-t border-slate-50">
-                        <button onclick="openCompanyProfile()" class="profile-btn w-full py-2 rounded-xl text-xs font-bold">
-                            View Profile →
+                    <div class="mt-auto pt-3 border-t flex gap-2" style="border-color: var(--border);">
+                        <button onclick='openCompanyProfile()'
+                                class="flex-1 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-80"
+                                style="background: ${catColor}15; color: ${catColor}; border: 1px solid ${catColor}25;">
+                            View Profile
                         </button>
+                        ${r.link ? `
+                        <a href="${r.link}" target="_blank"
+                           class="px-4 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-80"
+                           style="background: var(--dark); color: white;">
+                            Visit →
+                        </a>` : ''}
                     </div>
-                </div>`;
+                </div>
+                `;
             }).join('');
         }
 
         function openCompanyProfile() {
+            const modal = document.getElementById('uiModal');
+            const content = document.getElementById('modalContent');
             document.body.style.overflow = 'hidden';
-            document.getElementById('uiModal').classList.remove('hidden');
-            document.getElementById('modalContent').innerHTML = `
-                <div class="text-center py-6">
-                    <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-blue-50 flex items-center justify-center text-2xl">🔨</div>
-                    <h2 class="text-xl font-black text-slate-900">Company Profiles</h2>
-                    <p class="text-slate-500 text-sm mt-3 font-medium leading-relaxed max-w-xs mx-auto">
-                        Company profiles are in development and will be available for founders to customize soon.
+            modal.classList.remove('hidden');
+            content.innerHTML = `
+                <div class="text-center py-10">
+                    <div class="text-5xl mb-5">🔨</div>
+                    <h2 class="text-3xl font-black" style="color: var(--dark);">Coming Soon</h2>
+                    <p class="mt-3 font-medium max-w-sm mx-auto" style="color: var(--muted);">
+                        Company profiles are in development. Founders will be able to activate and customize these soon.
                     </p>
-                    <button onclick="closeModal()" class="mt-6 px-6 py-2.5 bg-slate-100 text-slate-600 rounded-full font-bold text-sm hover:bg-slate-200 transition-all">Close</button>
+                    <button onclick="closeModal()"
+                            class="mt-8 px-8 py-3 rounded-full font-bold text-sm transition-all hover:opacity-70"
+                            style="background: var(--bg); color: var(--dark);">Close</button>
                 </div>`;
         }
 
         function openAddModal() {
+            const modal = document.getElementById('uiModal');
+            const content = document.getElementById('modalContent');
             document.body.style.overflow = 'hidden';
-            document.getElementById('uiModal').classList.remove('hidden');
+            modal.classList.remove('hidden');
+
             const catOptions = uniqueCategories.map(c => `<option value="${c}">${c}</option>`).join('');
 
-            document.getElementById('modalContent').innerHTML = `
-                <div class="space-y-6">
+            content.innerHTML = `
+                <div class="space-y-7">
                     <div>
-                        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Submit a Startup</h2>
-                        <p class="text-slate-400 text-sm font-medium mt-1">Help grow the Charlotte index.</p>
+                        <h2 class="text-3xl font-black tracking-tight" style="color: var(--dark);">Submit a Startup</h2>
+                        <p class="font-medium mt-1" style="color: var(--muted);">Help grow the Charlotte startup index.</p>
                     </div>
                     <form id="addForm" class="space-y-4">
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Company Name</label>
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Company Name</label>
                             <input type="text" name="title" required placeholder="Acme Corp"
-                                class="w-full p-4 bg-slate-50 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium">
+                                   class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
+                                   style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
+                                   onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Industry</label>
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Industry / Category</label>
                             <select name="category" required
-                                class="w-full p-4 bg-slate-50 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium appearance-none">
+                                    class="w-full p-4 rounded-xl outline-none transition-all text-base appearance-none font-medium"
+                                    style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);">
                                 <option value="" disabled selected>Select Industry</option>
                                 ${catOptions}
                             </select>
                         </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Tagline</label>
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Tagline</label>
                             <input type="text" name="description" required placeholder="What are you building?"
-                                class="w-full p-4 bg-slate-50 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium">
+                                   class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
+                                   style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
+                                   onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Website</label>
-                            <input type="text" name="link" required placeholder="acme.com"
-                                class="w-full p-4 bg-slate-50 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium">
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Website</label>
+                            <input type="text" name="link" placeholder="acme.com" required
+                                   class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
+                                   style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
+                                   onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
-                        <div id="formErrorMessage" class="hidden text-red-600 bg-red-50 p-3 rounded-xl text-xs font-bold"></div>
+                        <div id="formErrorMessage" class="hidden p-4 rounded-xl text-sm font-bold" style="background: #fef2f2; color: #ef4444;"></div>
                         <button type="submit" id="submitBtn"
-                            class="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all text-sm">
+                                class="w-full py-4 rounded-2xl font-black text-base transition-all hover:opacity-90 active:scale-[0.98]"
+                                style="background: var(--dark); color: white;">
                             Submit Entry
                         </button>
                     </form>
-                </div>`;
+                </div>
+            `;
 
             document.getElementById('addForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const btn = document.getElementById('submitBtn');
                 const errorMsg = document.getElementById('formErrorMessage');
                 btn.disabled = true;
-                btn.innerText = 'Sending…';
+                btn.innerText = 'Sending...';
                 errorMsg.classList.add('hidden');
 
                 const formData = new FormData(e.target);
@@ -676,12 +636,18 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(data)
                         });
-                        document.getElementById('modalContent').innerHTML = `
-                            <div class="text-center py-6">
-                                <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-green-50 flex items-center justify-center text-2xl">✅</div>
-                                <h2 class="text-xl font-black text-slate-900">Submitted!</h2>
-                                <p class="text-slate-500 text-sm mt-2 font-medium">Your entry has been sent for review.</p>
-                                <button onclick="closeModal()" class="mt-6 px-6 py-2.5 bg-slate-100 text-slate-600 rounded-full font-bold text-sm hover:bg-slate-200 transition-all">Close</button>
+                        content.innerHTML = `
+                            <div class="text-center py-12">
+                                <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style="background: #f0fdf4;">
+                                    <svg class="w-8 h-8" style="color: #10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                                <h2 class="text-3xl font-black" style="color: var(--dark);">Submitted!</h2>
+                                <p class="mt-2 font-medium" style="color: var(--muted);">Your entry has been sent for review.</p>
+                                <button onclick="closeModal()"
+                                        class="mt-8 px-8 py-3 rounded-full font-bold text-sm hover:opacity-70 transition-all"
+                                        style="background: var(--bg); color: var(--dark);">Close</button>
                             </div>`;
                     } catch (err) {
                         if (retries > 0) {
@@ -689,11 +655,12 @@
                         } else {
                             btn.disabled = false;
                             btn.innerText = 'Submit Entry';
-                            errorMsg.innerText = 'Submission failed. Please check your connection.';
+                            errorMsg.innerText = "Submission failed. Please check your connection.";
                             errorMsg.classList.remove('hidden');
                         }
                     }
                 };
+
                 await submitWithRetry();
             };
         }
