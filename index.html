@@ -275,29 +275,57 @@
     <!-- Footer -->
     <footer style="background: var(--dark);" class="mt-20 relative overflow-hidden">
         <div class="hero-grid opacity-40"></div>
-        <div class="max-w-7xl mx-auto px-6 py-16 relative z-10">
-            <div class="flex flex-col md:flex-row justify-between items-start gap-12">
-                <div>
-                    <div class="text-2xl font-black tracking-tight mb-3">
+        <div class="max-w-7xl mx-auto px-6 pt-20 pb-12 relative z-10">
+            <!-- Top row: Brand + CTAs -->
+            <div class="flex flex-col lg:flex-row justify-between items-start gap-16">
+                <!-- Brand column -->
+                <div class="max-w-sm">
+                    <div class="text-2xl font-black tracking-tight mb-4">
                         <span class="text-white">CLT</span><span style="color: var(--accent);">Startups</span>
                     </div>
-                    <p class="font-medium max-w-xs text-sm" style="color: rgba(255,255,255,0.35);">
-                        A living index of startups building in Charlotte. Community-driven, always free.
+                    <p class="font-medium text-sm leading-relaxed mb-6" style="color: rgba(255,255,255,0.4);">
+                        A living index of startups building in Charlotte. Community-driven, always free, and updated by the people who know the scene best.
                     </p>
+                    <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest" style="color: var(--accent);">
+                        <span class="w-2 h-2 rounded-full pulse-dot" style="background: var(--accent);"></span>
+                        Open-source &amp; community-maintained
+                    </div>
                 </div>
-                <div>
-                    <h2 class="text-xl font-black text-white mb-2">Missing a startup?</h2>
-                    <p class="text-sm font-medium mb-5" style="color: rgba(255,255,255,0.4);">Help keep the index accurate and complete.</p>
-                    <button onclick="openAddModal()"
-                            style="background: var(--accent); color: var(--dark);"
-                            class="px-6 py-3 rounded-full font-black text-sm hover:opacity-90 transition-all active:scale-95">
-                        Add to Index
-                    </button>
+
+                <!-- CTA columns -->
+                <div class="flex flex-col sm:flex-row gap-10 lg:gap-16">
+                    <!-- Add startup CTA -->
+                    <div>
+                        <h3 class="text-base font-black text-white mb-2">Missing a startup?</h3>
+                        <p class="text-sm font-medium mb-4 max-w-xs" style="color: rgba(255,255,255,0.35);">Help keep the index accurate and complete.</p>
+                        <button onclick="openAddModal()"
+                                style="background: var(--accent); color: var(--dark);"
+                                class="px-6 py-3 rounded-full font-black text-sm hover:opacity-90 transition-all active:scale-95">
+                            Add to Index
+                        </button>
+                    </div>
+                    <!-- Feedback CTA -->
+                    <div>
+                        <h3 class="text-base font-black text-white mb-2">See something off?</h3>
+                        <p class="text-sm font-medium mb-4 max-w-xs" style="color: rgba(255,255,255,0.35);">Request a change or share feedback with us.</p>
+                        <a href="mailto:feedback@cltstartups.com"
+                           style="border: 1.5px solid rgba(255,255,255,0.15); color: white;"
+                           class="inline-block px-6 py-3 rounded-full font-black text-sm hover:border-white transition-all active:scale-95">
+                            Submit Feedback
+                        </a>
+                    </div>
                 </div>
             </div>
-            <div class="mt-16 pt-8 border-t text-center text-xs font-bold uppercase tracking-widest"
-                 style="border-color: rgba(255,255,255,0.07); color: rgba(255,255,255,0.2);">
-                &copy; 2025 Charlotte Startup Index · Built in the Queen City
+
+            <!-- Divider -->
+            <div class="mt-14 pt-8 border-t flex flex-col sm:flex-row justify-between items-center gap-4"
+                 style="border-color: rgba(255,255,255,0.07);">
+                <p class="text-xs font-bold uppercase tracking-widest" style="color: rgba(255,255,255,0.2);">
+                    &copy; 2026 Charlotte Startup Index
+                </p>
+                <p class="text-xs font-bold uppercase tracking-widest" style="color: rgba(255,255,255,0.2);">
+                    Built with <span style="color: var(--accent);">&hearts;</span> in the Queen City &middot; 704
+                </p>
             </div>
         </div>
     </footer>
