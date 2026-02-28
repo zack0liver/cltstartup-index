@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="keywords" content="Charlotte startups, 704, CLT startups, Charlotte startup directory, Charlotte tech, Queen City startups">
     <title>CLT Startups | Directory</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -188,8 +189,7 @@
                 <span class="text-white">CLT</span><span style="color: var(--accent);">Startups</span>
             </div>
             <div class="flex items-center gap-4">
-                <span class="hidden sm:block text-xs font-bold uppercase tracking-widest" style="color: rgba(255,255,255,0.35);">Charlotte · 704</span>
-                <button onclick="openAddModal()" style="background: var(--accent); color: var(--dark);" class="px-5 py-2 rounded-full text-sm font-black hover:opacity-90 transition-all active:scale-95">
+<button onclick="openAddModal()" style="background: var(--accent); color: var(--dark);" class="px-5 py-2 rounded-full text-sm font-black hover:opacity-90 transition-all active:scale-95">
                     + Submit
                 </button>
             </div>
@@ -298,7 +298,7 @@
                         </svg>
                         <span id="activeFilterLabel" class="text-xs font-bold" style="color: var(--dark);"></span>
                     </div>
-                    <button onclick="setLocationFilter('all')" class="text-xs font-bold px-2.5 py-1 rounded-lg transition-all hover:opacity-70"
+                    <button onclick="clearAllFilters()" class="text-xs font-bold px-2.5 py-1 rounded-lg transition-all hover:opacity-70"
                             style="color: var(--muted); background: rgba(10, 15, 30, 0.05);">Clear</button>
                 </div>
                 <div id="loadingState" class="flex flex-col items-center py-24">
@@ -406,7 +406,7 @@
             }
             displayLocationClusters();
             render();
-            document.getElementById('directoryGrid').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function closeModal() {
@@ -513,6 +513,21 @@
             `).join('');
         }
 
+        function clearAllFilters() {
+            currentLocationFilter = 'all';
+            currentFilter = 'all';
+            displayLocationClusters();
+            document.querySelectorAll('.category-pill').forEach(el => {
+                const isAll = el.innerText.trim().toLowerCase() === 'all';
+                el.classList.toggle('active', isAll);
+                el.style.background = isAll ? 'var(--dark)' : 'white';
+                el.style.color = isAll ? 'white' : 'var(--dark)';
+                el.style.borderColor = isAll ? 'var(--dark)' : 'var(--border)';
+            });
+            render();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         function setFilter(cat) {
             currentFilter = cat;
             document.querySelectorAll('.category-pill').forEach(el => {
@@ -524,6 +539,7 @@
                 el.style.borderColor = isActive ? 'var(--dark)' : 'var(--border)';
             });
             render();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function render() {
@@ -532,9 +548,14 @@
             const emptyState = document.getElementById('emptyState');
 
             const banner = document.getElementById('activeFilterBanner');
-            if (currentLocationFilter !== 'all') {
+            const hasLocationFilter = currentLocationFilter !== 'all';
+            const hasCategoryFilter = currentFilter !== 'all';
+            if (hasLocationFilter || hasCategoryFilter) {
                 banner.classList.remove('hidden');
-                document.getElementById('activeFilterLabel').textContent = 'Filtering: ' + currentLocationFilter;
+                const parts = [];
+                if (hasCategoryFilter) parts.push(currentFilter);
+                if (hasLocationFilter) parts.push(currentLocationFilter);
+                document.getElementById('activeFilterLabel').textContent = 'Filtering: ' + parts.join(' · ');
             } else {
                 banner.classList.add('hidden');
             }
@@ -633,16 +654,23 @@
 
             const catOptions = uniqueCategories.map(c => `<option value="${c}">${c}</option>`).join('');
 
+            const submitSubtitles = [
+                "Know a startup we're missing? Put it on the map.",
+                "Every great company starts somewhere. Make sure we know about it.",
+                "The 704 is building. Don't let anyone miss it."
+            ];
+            const subtitle = submitSubtitles[Math.floor(Math.random() * submitSubtitles.length)];
+
             content.innerHTML = `
                 <div class="space-y-7">
                     <div>
                         <h2 class="text-3xl font-black tracking-tight" style="color: var(--dark);">Submit a Startup</h2>
-                        <p class="font-medium mt-1" style="color: var(--muted);">Help grow the Charlotte startup index.</p>
+                        <p class="font-medium mt-1" style="color: var(--muted);">${subtitle}</p>
                     </div>
                     <form id="addForm" class="space-y-4">
                         <div class="space-y-1.5">
                             <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Company Name</label>
-                            <input type="text" name="title" required placeholder="Acme Corp"
+                            <input type="text" name="title" required placeholder="Insert Startup Here"
                                    class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
                                    style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
                                    onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
@@ -665,7 +693,7 @@
                         </div>
                         <div class="space-y-1.5">
                             <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Website</label>
-                            <input type="text" name="link" placeholder="acme.com" required
+                            <input type="text" name="link" placeholder="websitegoeshere.com" required
                                    class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
                                    style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
                                    onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
