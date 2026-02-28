@@ -56,11 +56,13 @@
             font-size: 11px;
             font-weight: 700;
             letter-spacing: 0.05em;
+            box-shadow: 0 1px 3px rgba(10, 15, 30, 0.04);
         }
         .category-pill.active {
             background: var(--dark) !important;
             color: white !important;
             border-color: var(--dark) !important;
+            box-shadow: 0 2px 8px rgba(10, 15, 30, 0.15);
         }
         .category-pill:not(.active):hover {
             background: var(--dark) !important;
@@ -88,12 +90,24 @@
             position: sticky;
             top: 110px;
             height: fit-content;
+            max-height: calc(100vh - 140px);
         }
+        .map-sidebar > div {
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .map-sidebar > div::-webkit-scrollbar { width: 4px; }
+        .map-sidebar > div::-webkit-scrollbar-track { background: transparent; }
+        .map-sidebar > div::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        .map-sidebar > div::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
         .location-cluster {
             transition: all 0.2s ease;
             cursor: pointer;
             border: 1.5px solid var(--border);
-            border-radius: 12px;
+            border-radius: 10px;
             background: white;
         }
         .location-cluster:hover,
@@ -108,7 +122,24 @@
         .location-cluster:hover .cluster-sub,
         .location-cluster.active .cluster-sub { color: rgba(255,255,255,0.55) !important; }
 
-        .location-pin { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .location-reset {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1.5px dashed var(--border);
+            border-radius: 10px;
+            background: transparent;
+        }
+        .location-reset:hover {
+            border-color: var(--accent);
+            background: rgba(0, 229, 160, 0.06);
+        }
+        .location-reset.active {
+            border-color: var(--accent);
+            border-style: solid;
+            background: rgba(0, 229, 160, 0.08);
+        }
+
+        .location-pin { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
         .pin-hq { background: var(--accent); }
         .pin-hub { background: white; border: 2px solid var(--accent); }
 
@@ -135,8 +166,9 @@
 
         /* Sticky search bar */
         #explore {
-            background: rgba(245, 242, 235, 0.95);
-            border-bottom: 1.5px solid var(--border);
+            background: rgba(245, 242, 235, 0.92);
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 4px 24px -4px rgba(10, 15, 30, 0.06);
         }
 
         /* Pulse dot */
@@ -252,12 +284,23 @@
                         </svg>
                         Where We Build
                     </h3>
-                    <div id="locationClusters" class="space-y-2"></div>
+                    <div id="locationClusters" class="space-y-1.5"></div>
                 </div>
             </aside>
 
             <!-- Grid -->
             <main class="flex-1">
+                <div id="activeFilterBanner" class="hidden mb-4 px-4 py-2.5 rounded-xl flex items-center justify-between"
+                     style="background: rgba(0, 229, 160, 0.08); border: 1px solid rgba(0, 229, 160, 0.2);">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" style="color: var(--accent);" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span id="activeFilterLabel" class="text-xs font-bold" style="color: var(--dark);"></span>
+                    </div>
+                    <button onclick="setLocationFilter('all')" class="text-xs font-bold px-2.5 py-1 rounded-lg transition-all hover:opacity-70"
+                            style="color: var(--muted); background: rgba(10, 15, 30, 0.05);">Clear</button>
+                </div>
                 <div id="loadingState" class="flex flex-col items-center py-24">
                     <div class="w-8 h-8 border-4 rounded-full spinner"
                          style="border-color: var(--border); border-top-color: var(--dark);"></div>
@@ -356,9 +399,14 @@
         }
 
         function setLocationFilter(locationName) {
-            currentLocationFilter = (currentLocationFilter === locationName) ? 'all' : locationName;
+            if (locationName === 'all') {
+                currentLocationFilter = 'all';
+            } else {
+                currentLocationFilter = (currentLocationFilter === locationName) ? 'all' : locationName;
+            }
             displayLocationClusters();
             render();
+            document.getElementById('directoryGrid').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function closeModal() {
@@ -416,12 +464,23 @@
         function displayLocationClusters() {
             const container = document.getElementById('locationClusters');
             const sorted = Object.entries(locationClusters).sort((a, b) => (b[1].hq + b[1].hub) - (a[1].hq + a[1].hub));
-            container.innerHTML = sorted.map(([name, data]) => {
+            const totalCompanies = sorted.reduce((sum, [, d]) => sum + d.hq + d.hub, 0);
+            const isAllActive = currentLocationFilter === 'all';
+
+            const allBtn = `
+                <div onclick="setLocationFilter('all')" class="location-reset px-3 py-2 ${isAllActive ? 'active' : ''}">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold" style="color: ${isAllActive ? 'var(--dark)' : 'var(--muted)'};">All Locations</span>
+                        <span class="text-xs font-black px-2 py-0.5 rounded-full" style="background: ${isAllActive ? 'rgba(0,229,160,0.12)' : 'var(--bg)'}; color: var(--dark);">${totalCompanies}</span>
+                    </div>
+                </div>`;
+
+            const clusters = sorted.map(([name, data]) => {
                 const total = data.hq + data.hub;
                 const isActive = currentLocationFilter === name;
                 return `
-                    <div onclick="setLocationFilter('${name}')" class="location-cluster p-3 ${isActive ? 'active' : ''}">
-                        <div class="flex items-center justify-between mb-1">
+                    <div onclick="setLocationFilter('${name}')" class="location-cluster px-3 py-2.5 ${isActive ? 'active' : ''}">
+                        <div class="flex items-center justify-between mb-0.5">
                             <span class="cluster-name text-sm font-bold truncate pr-2" style="color: var(--dark);">${name}</span>
                             <span class="cluster-count text-xs font-black px-2 py-0.5 rounded-full flex-shrink-0" style="background: var(--bg); color: var(--dark);">${total}</span>
                         </div>
@@ -432,6 +491,8 @@
                     </div>
                 `;
             }).join('');
+
+            container.innerHTML = allBtn + clusters;
         }
 
         function setupFilters() {
@@ -446,7 +507,7 @@
             container.innerHTML = cats.map(c => `
                 <button onclick="setFilter('${c}')"
                         class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase ${c === 'all' ? 'active' : ''}"
-                        style="border-color: var(--border); background: white; color: var(--muted);">
+                        style="border-color: var(--border); background: white; color: ${c === 'all' ? 'white' : 'var(--dark)'};">
                     ${c === 'all' ? 'All' : c}
                 </button>
             `).join('');
@@ -459,7 +520,7 @@
                 const isActive = label === cat.toLowerCase() || (cat === 'all' && label === 'all');
                 el.classList.toggle('active', isActive);
                 el.style.background = isActive ? 'var(--dark)' : 'white';
-                el.style.color = isActive ? 'white' : 'var(--muted)';
+                el.style.color = isActive ? 'white' : 'var(--dark)';
                 el.style.borderColor = isActive ? 'var(--dark)' : 'var(--border)';
             });
             render();
@@ -469,6 +530,14 @@
             document.getElementById('loadingState').classList.add('hidden');
             const grid = document.getElementById('directoryGrid');
             const emptyState = document.getElementById('emptyState');
+
+            const banner = document.getElementById('activeFilterBanner');
+            if (currentLocationFilter !== 'all') {
+                banner.classList.remove('hidden');
+                document.getElementById('activeFilterLabel').textContent = 'Filtering: ' + currentLocationFilter;
+            } else {
+                banner.classList.add('hidden');
+            }
 
             const filtered = resources.filter(r => {
                 const matchesFilter = (currentFilter === 'all' || r.category === currentFilter);
