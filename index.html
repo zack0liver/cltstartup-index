@@ -233,7 +233,7 @@
                         style="border: 1.5px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.65); background: transparent;"
                         onmouseover="this.style.background='rgba(255,255,255,0.08)'"
                         onmouseout="this.style.background='transparent'">
-                    Add your startup
+                    Add a startup
                 </button>
             </div>
 
@@ -351,7 +351,7 @@
     <div id="uiModal" class="fixed inset-0 z-[100] hidden overflow-y-auto">
         <div class="fixed inset-0 modal-overlay" onclick="closeModal()"></div>
         <div class="relative min-h-screen flex items-center justify-center p-4 sm:p-8">
-            <div id="modalBox" class="bg-white w-full max-w-2xl rounded-3xl p-10 md:p-14 shadow-2xl relative z-10">
+            <div id="modalBox" class="bg-white w-full max-w-2xl rounded-3xl p-8 md:p-10 shadow-2xl relative z-10">
                 <button onclick="closeModal()"
                         class="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full transition-all hover:opacity-70"
                         style="background: var(--bg); color: var(--muted);">
@@ -723,59 +723,63 @@
             const subtitle = submitSubtitles[Math.floor(Math.random() * submitSubtitles.length)];
 
             content.innerHTML = `
-                <div class="space-y-7">
+                <div class="space-y-5">
                     <div>
-                        <h2 class="text-3xl font-black tracking-tight" style="color: var(--dark);">Submit a Startup</h2>
-                        <p class="font-medium mt-1" style="color: var(--muted);">${subtitle}</p>
+                        <h2 class="text-2xl font-black tracking-tight" style="color: var(--dark);">Submit a Startup</h2>
+                        <p class="font-medium mt-1 text-sm" style="color: var(--muted);">${subtitle}</p>
                     </div>
-                    <form id="addForm" class="space-y-4">
-                        <div class="space-y-1.5">
+                    <form id="addForm" class="space-y-3">
+                        <div class="space-y-1">
                             <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Company Name</label>
                             <input type="text" name="title" required placeholder="Insert Startup Here"
-                                   class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
+                                   class="w-full px-3 py-2.5 rounded-xl outline-none transition-all text-sm font-medium"
                                    style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
                                    onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Industry / Category</label>
-                            <select name="category" required
-                                    class="w-full p-4 rounded-xl outline-none transition-all text-base appearance-none font-medium"
-                                    style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);">
-                                <option value="" disabled selected>Select Industry</option>
-                                ${catOptions}
-                            </select>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Industry / Category</label>
+                                <select name="category" required
+                                        class="w-full px-3 py-2.5 rounded-xl outline-none transition-all text-sm appearance-none font-medium"
+                                        style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);">
+                                    <option value="" disabled selected>Select Industry</option>
+                                    ${catOptions}
+                                </select>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Website</label>
+                                <input type="text" name="link" placeholder="websitegoeshere.com" required
+                                       class="w-full px-3 py-2.5 rounded-xl outline-none transition-all text-sm font-medium"
+                                       style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
+                                       onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
+                            </div>
                         </div>
-                        <div class="space-y-1.5">
+                        <div class="space-y-1">
                             <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Tagline</label>
                             <input type="text" name="description" required placeholder="What are you building?"
-                                   class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
+                                   class="w-full px-3 py-2.5 rounded-xl outline-none transition-all text-sm font-medium"
                                    style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
                                    onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Website</label>
-                            <input type="text" name="link" placeholder="websitegoeshere.com" required
-                                   class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
-                                   style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
-                                   onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Location <span class="font-medium normal-case tracking-normal" style="color: var(--muted);">(optional)</span></label>
+                                <input type="text" name="location" placeholder="e.g. South End, Uptown"
+                                       class="w-full px-3 py-2.5 rounded-xl outline-none transition-all text-sm font-medium"
+                                       style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
+                                       onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">LinkedIn <span class="font-medium normal-case tracking-normal" style="color: var(--muted);">(optional)</span></label>
+                                <input type="text" name="linkedin" placeholder="linkedin.com/company/yourco"
+                                       class="w-full px-3 py-2.5 rounded-xl outline-none transition-all text-sm font-medium"
+                                       style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
+                                       onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
+                            </div>
                         </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Location <span class="font-medium normal-case tracking-normal" style="color: var(--muted);">(optional)</span></label>
-                            <input type="text" name="location" placeholder="e.g. South End, Uptown"
-                                   class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
-                                   style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
-                                   onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">LinkedIn <span class="font-medium normal-case tracking-normal" style="color: var(--muted);">(optional)</span></label>
-                            <input type="text" name="linkedin" placeholder="linkedin.com/company/yourco"
-                                   class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
-                                   style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
-                                   onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
-                        </div>
-                        <div id="formErrorMessage" class="hidden p-4 rounded-xl text-sm font-bold" style="background: #fef2f2; color: #ef4444;"></div>
+                        <div id="formErrorMessage" class="hidden p-3 rounded-xl text-sm font-bold" style="background: #fef2f2; color: #ef4444;"></div>
                         <button type="submit" id="submitBtn"
-                                class="w-full py-4 rounded-2xl font-black text-base transition-all hover:opacity-90 active:scale-[0.98]"
+                                class="w-full py-3 rounded-2xl font-black text-sm transition-all hover:opacity-90 active:scale-[0.98]"
                                 style="background: var(--dark); color: white;">
                             Submit Entry
                         </button>
