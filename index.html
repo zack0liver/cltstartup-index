@@ -670,7 +670,7 @@
                     const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
                     const l = (max + min) / 2;
                     const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
-                    if (s < 0.25 || l > 0.88 || l < 0.08) continue; // skip gray/white/black
+                    if (s < 0.2 || l > 0.88 || l < 0.04) continue; // skip gray/white/black
                     let h = 0;
                     if (d > 0) {
                         if (max === r)      h = (((g - b) / d) % 6 + 6) % 6 / 6;
@@ -678,7 +678,7 @@
                         else               h = ((r - g) / d + 4) / 6;
                     }
                     const bucket = Math.floor(h * 12) % 12;
-                    const w = s * (0.5 - Math.abs(l - 0.5)); // colorfulness weight
+                    const w = s; // weight by saturation only — dark brand colors count equally
                     buckets[bucket] += w;
                     samples[bucket].r += data[i]   * w;
                     samples[bucket].g += data[i+1] * w;
