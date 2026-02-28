@@ -145,6 +145,7 @@
         .pin-hub { background: white; border: 2px solid var(--accent); }
 
         @media (max-width: 1280px) { .map-sidebar { display: none; } }
+        @media (min-width: 1280px) { #locationChipsMobile { display: none; } }
 
         /* Hero decorative grid */
         .hero-grid {
@@ -245,7 +246,7 @@
                     <span id="heroCats" class="text-white font-black">—</span> industries
                 </div>
                 <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55);">
-                    <span class="text-white font-black">10+</span> neighborhoods
+                    <span id="heroNeighborhoods" class="text-white font-black">—</span> neighborhoods
                 </div>
             </div>
         </div>
@@ -290,6 +291,7 @@
 
             <!-- Grid -->
             <main class="flex-1">
+                <div id="locationChipsMobile" class="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-3"></div>
                 <div id="activeFilterBanner" class="hidden mb-4 px-4 py-2.5 rounded-xl flex items-center justify-between"
                      style="background: rgba(0, 229, 160, 0.08); border: 1px solid rgba(0, 229, 160, 0.2);">
                     <div class="flex items-center gap-2">
@@ -459,6 +461,7 @@
                 }
             });
             displayLocationClusters();
+            document.getElementById('heroNeighborhoods').textContent = Object.keys(locationClusters).length;
         }
 
         function displayLocationClusters() {
@@ -493,6 +496,17 @@
             }).join('');
 
             container.innerHTML = allBtn + clusters;
+
+            const mobileContainer = document.getElementById('locationChipsMobile');
+            if (mobileContainer) {
+                const mobileAllChip = `<button onclick="setLocationFilter('all')" class="category-pill loc-chip px-4 py-1.5 rounded-full border transition-all uppercase ${isAllActive ? 'active' : ''}" style="border-color: ${isAllActive ? 'var(--dark)' : 'var(--border)'}; background: ${isAllActive ? 'var(--dark)' : 'white'}; color: ${isAllActive ? 'white' : 'var(--dark)'}; flex-shrink: 0;">All</button>`;
+                const mobileChips = sorted.map(([name, data]) => {
+                    const total = data.hq + data.hub;
+                    const isActive = currentLocationFilter === name;
+                    return `<button onclick="setLocationFilter('${name}')" class="category-pill loc-chip px-4 py-1.5 rounded-full border transition-all uppercase ${isActive ? 'active' : ''}" style="border-color: ${isActive ? 'var(--dark)' : 'var(--border)'}; background: ${isActive ? 'var(--dark)' : 'white'}; color: ${isActive ? 'white' : 'var(--dark)'}; flex-shrink: 0;">${name} (${total})</button>`;
+                }).join('');
+                mobileContainer.innerHTML = mobileAllChip + mobileChips;
+            }
         }
 
         function setupFilters() {
@@ -517,7 +531,7 @@
             currentLocationFilter = 'all';
             currentFilter = 'all';
             displayLocationClusters();
-            document.querySelectorAll('.category-pill').forEach(el => {
+            document.querySelectorAll('.category-pill:not(.loc-chip)').forEach(el => {
                 const isAll = el.innerText.trim().toLowerCase() === 'all';
                 el.classList.toggle('active', isAll);
                 el.style.background = isAll ? 'var(--dark)' : 'white';
@@ -530,7 +544,7 @@
 
         function setFilter(cat) {
             currentFilter = cat;
-            document.querySelectorAll('.category-pill').forEach(el => {
+            document.querySelectorAll('.category-pill:not(.loc-chip)').forEach(el => {
                 const label = el.innerText.trim().toLowerCase();
                 const isActive = label === cat.toLowerCase() || (cat === 'all' && label === 'all');
                 el.classList.toggle('active', isActive);
@@ -606,16 +620,22 @@
                                 <span class="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md flex-shrink-0"
                                       style="color: ${catColor}; background: ${catColor}18; border: 1px solid ${catColor}28;">${r.category}</span>
                             </div>
+                            ${r.lastfunding ? `
+                            <span class="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md"
+                                  style="color: var(--muted); background: var(--bg); border: 1px solid var(--border);">
+                                ${r.lastfunding}
+                            </span>` : ''}
                             <p class="text-sm leading-relaxed" style="color: var(--muted);">${r.description}</p>
                             ${locationBadge}
                         </div>
                     </div>
                     <div class="mt-auto pt-3 border-t flex gap-2" style="border-color: var(--border);">
-                        <button onclick='openCompanyProfile()'
-                                class="flex-1 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-80"
-                                style="background: ${catColor}15; color: ${catColor}; border: 1px solid ${catColor}25;">
-                            View Profile
-                        </button>
+                        ${r.linkedin ? `
+                        <a href="${r.linkedin}" target="_blank"
+                           class="px-3 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-80"
+                           style="background: #0A66C2; color: white;">
+                            LinkedIn
+                        </a>` : ''}
                         ${r.link ? `
                         <a href="${r.link}" target="_blank"
                            class="px-4 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-80"
@@ -626,24 +646,6 @@
                 </div>
                 `;
             }).join('');
-        }
-
-        function openCompanyProfile() {
-            const modal = document.getElementById('uiModal');
-            const content = document.getElementById('modalContent');
-            document.body.style.overflow = 'hidden';
-            modal.classList.remove('hidden');
-            content.innerHTML = `
-                <div class="text-center py-10">
-                    <div class="text-5xl mb-5">🔨</div>
-                    <h2 class="text-3xl font-black" style="color: var(--dark);">Coming Soon</h2>
-                    <p class="mt-3 font-medium max-w-sm mx-auto" style="color: var(--muted);">
-                        Company profiles are in development. Founders will be able to activate and customize these soon.
-                    </p>
-                    <button onclick="closeModal()"
-                            class="mt-8 px-8 py-3 rounded-full font-bold text-sm transition-all hover:opacity-70"
-                            style="background: var(--bg); color: var(--dark);">Close</button>
-                </div>`;
         }
 
         function openAddModal() {
@@ -698,6 +700,20 @@
                                    style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
                                    onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Location <span class="font-medium normal-case tracking-normal" style="color: var(--muted);">(optional)</span></label>
+                            <input type="text" name="location" placeholder="e.g. South End, Uptown"
+                                   class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
+                                   style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
+                                   onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">LinkedIn <span class="font-medium normal-case tracking-normal" style="color: var(--muted);">(optional)</span></label>
+                            <input type="text" name="linkedin" placeholder="linkedin.com/company/yourco"
+                                   class="w-full p-4 rounded-xl outline-none transition-all text-base font-medium"
+                                   style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
+                                   onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
+                        </div>
                         <div id="formErrorMessage" class="hidden p-4 rounded-xl text-sm font-bold" style="background: #fef2f2; color: #ef4444;"></div>
                         <button type="submit" id="submitBtn"
                                 class="w-full py-4 rounded-2xl font-black text-base transition-all hover:opacity-90 active:scale-[0.98]"
@@ -722,6 +738,8 @@
                     category: formData.get('category'),
                     description: formData.get('description'),
                     link: formData.get('link'),
+                    location: formData.get('location'),
+                    linkedin: formData.get('linkedin'),
                     timestamp: new Date().toLocaleString()
                 };
 
