@@ -606,7 +606,7 @@
                 ` : '';
 
                 return `
-                <div class="startup-card p-5 flex flex-col h-full" style="--card-accent: ${catColor};">
+                <div class="startup-card p-5 flex flex-col h-full" style="--card-accent: ${catColor};" data-logo="${finalLogoUrl}" data-fallback="${catColor}">
                     <div class="flex gap-4 items-start mb-4">
                         <img src="${finalLogoUrl}"
                              class="w-14 h-14 rounded-xl object-contain flex-shrink-0 p-1.5"
@@ -618,7 +618,7 @@
                                    class="font-black text-base leading-tight hover:opacity-60 transition-opacity"
                                    style="color: var(--dark);">${r.title}</a>
                                 <span class="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md flex-shrink-0"
-                                      style="color: ${catColor}; background: ${catColor}18; border: 1px solid ${catColor}28;">${r.category}</span>
+                                      style="color: var(--muted); background: var(--bg); border: 1px solid var(--border);">${r.category}</span>
                             </div>
                             ${r.lastfunding ? `
                             <span class="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md"
@@ -646,6 +646,53 @@
                 </div>
                 `;
             }).join('');
+
+            applyLogoColors();
+        }
+
+        function getDominantColor(img) {
+            try {
+                const size = 32;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, size, size);
+                const data = ctx.getImageData(0, 0, size, size).data;
+                const counts = {};
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+                    if (a < 128) continue;
+                    if (r > 230 && g > 230 && b > 230) continue; // skip white
+                    if (r < 25 && g < 25 && b < 25) continue;   // skip black
+                    const qr = Math.round(r / 51) * 51;
+                    const qg = Math.round(g / 51) * 51;
+                    const qb = Math.round(b / 51) * 51;
+                    const key = `${qr},${qg},${qb}`;
+                    counts[key] = (counts[key] || 0) + 1;
+                }
+                const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+                if (!top) return null;
+                const [r, g, b] = top[0].split(',').map(Number);
+                if (Math.max(r, g, b) - Math.min(r, g, b) < 30) return null; // too gray
+                return `rgb(${r},${g},${b})`;
+            } catch(e) {
+                return null;
+            }
+        }
+
+        function applyLogoColors() {
+            document.querySelectorAll('.startup-card[data-logo]').forEach(card => {
+                const logoUrl = card.dataset.logo;
+                const fallback = card.dataset.fallback;
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = function() {
+                    const color = getDominantColor(img);
+                    card.style.setProperty('--card-accent', color || fallback);
+                };
+                img.src = logoUrl;
+            });
         }
 
         function openAddModal() {
