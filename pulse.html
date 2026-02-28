@@ -16,16 +16,77 @@
             --text: #0a0f1e;
             --muted: #6b7280;
         }
+
         html { scroll-behavior: smooth; }
-        body { font-family: 'Outfit', sans-serif; background-color: var(--bg); color: var(--text); }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            -webkit-tap-highlight-color: transparent;
+        }
+
         .hero-grid {
             position: absolute; inset: 0;
-            background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+            background-image:
+                linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
             background-size: 48px 48px;
             pointer-events: none;
         }
+
         @keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.85); } }
         .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Category pills — identical to index.html */
+        .category-pill {
+            white-space: nowrap;
+            transition: all 0.2s;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(10, 15, 30, 0.04);
+        }
+        .category-pill.active {
+            background: var(--dark) !important;
+            color: white !important;
+            border-color: var(--dark) !important;
+            box-shadow: 0 2px 8px rgba(10, 15, 30, 0.15);
+        }
+        .category-pill:not(.active):hover {
+            background: var(--dark) !important;
+            color: white !important;
+            border-color: var(--dark) !important;
+        }
+
+        /* Article cards */
+        .news-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 16px;
+            padding: 20px 24px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .news-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px -8px rgba(10, 15, 30, 0.1);
+            border-color: rgba(10, 15, 30, 0.25);
+        }
+
+        /* Sticky chip bar */
+        #chipBar {
+            background: rgba(245, 242, 235, 0.92);
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 4px 24px -4px rgba(10, 15, 30, 0.06);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -37,7 +98,10 @@
                 <span class="text-white">CLT</span><span style="color: var(--accent);">Startups</span>
             </a>
             <div class="flex items-center gap-4">
-                <a href="pulse.html" class="flex items-center gap-1.5 text-sm font-bold transition-all" style="color: var(--accent);">
+                <a href="index.html" class="text-sm font-bold transition-all hover:opacity-70"
+                   style="color: rgba(255,255,255,0.5);">Directory</a>
+                <a href="pulse.html" class="flex items-center gap-1.5 text-sm font-bold"
+                   style="color: var(--accent);">
                     <div class="pulse-dot" style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0;"></div>
                     Pulse
                 </a>
@@ -55,23 +119,272 @@
                 <span style="color: var(--accent);" class="text-xs font-bold uppercase tracking-widest">Live Feed</span>
             </div>
             <h1 class="font-black text-white tracking-tighter leading-none mb-4"
-                style="font-size: clamp(2.5rem, 6vw, 4.5rem);">
-                Pulse
-            </h1>
-            <p class="text-lg font-medium max-w-lg" style="color: rgba(255,255,255,0.45);">
+                style="font-size: clamp(2.5rem, 6vw, 4.5rem);">Pulse</h1>
+            <p class="text-lg font-medium max-w-lg mb-8" style="color: rgba(255,255,255,0.45);">
                 News, signals, and momentum from Charlotte's startup scene — all in one feed.
             </p>
+            <div class="flex flex-wrap gap-3">
+                <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55);">
+                    <span id="heroCount" class="text-white font-black">—</span> articles
+                </div>
+                <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55);">
+                    <span id="heroSources" class="text-white font-black">—</span> sources
+                </div>
+                <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55);">
+                    Updated <span id="heroUpdated" class="text-white font-black">daily</span>
+                </div>
+            </div>
         </div>
     </section>
 
-    <!-- Coming Soon Body -->
-    <main class="flex-grow flex items-center justify-center py-32">
-        <div class="text-center">
-            <div class="text-5xl mb-5">📡</div>
-            <h2 class="text-2xl font-black mb-2" style="color: var(--dark);">Building the feed</h2>
-            <p class="font-medium" style="color: var(--muted);">Pulse is coming soon.</p>
+    <!-- Sticky chip bar -->
+    <div id="chipBar" class="sticky top-0 z-50 px-6 py-3">
+        <div class="max-w-2xl mx-auto">
+            <div id="companyChips" class="flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
+        </div>
+    </div>
+
+    <!-- Feed -->
+    <main class="flex-grow py-10 px-6">
+        <div class="max-w-2xl mx-auto">
+            <div id="loadingState" class="flex flex-col items-center py-24">
+                <div class="w-8 h-8 border-4 rounded-full spinner"
+                     style="border-color: var(--border); border-top-color: var(--dark);"></div>
+                <p class="mt-4 text-sm font-medium" style="color: var(--muted);">Scanning the Charlotte feed...</p>
+            </div>
+            <div id="emptyState" class="hidden text-center py-24 rounded-3xl border-2 border-dashed" style="border-color: var(--border);">
+                <div class="text-4xl mb-3">📡</div>
+                <p class="font-black text-lg" style="color: var(--dark);">No articles yet</p>
+                <p class="text-sm mt-1" style="color: var(--muted);">Check back after the feed runs its first cycle</p>
+            </div>
+            <div id="articleFeed" class="space-y-4 hidden"></div>
         </div>
     </main>
 
+    <!-- Footer -->
+    <footer style="background: var(--dark);" class="mt-20 relative overflow-hidden">
+        <div class="hero-grid opacity-40"></div>
+        <div class="max-w-7xl mx-auto px-6 py-16 relative z-10">
+            <div class="flex flex-col md:flex-row justify-between items-start gap-12">
+                <div>
+                    <div class="text-2xl font-black tracking-tight mb-3">
+                        <span class="text-white">CLT</span><span style="color: var(--accent);">Startups</span>
+                    </div>
+                    <p class="font-medium max-w-xs text-sm" style="color: rgba(255,255,255,0.35);">
+                        A living index of startups building in Charlotte. Community-driven, always free.
+                    </p>
+                </div>
+                <div>
+                    <h2 class="text-xl font-black text-white mb-2">Want your company in the feed?</h2>
+                    <p class="text-sm font-medium mb-5" style="color: rgba(255,255,255,0.4);">Submit to the directory and your news will automatically appear here.</p>
+                    <a href="index.html" style="background: var(--accent); color: var(--dark);"
+                       class="px-6 py-3 rounded-full font-black text-sm hover:opacity-90 transition-all active:scale-95 inline-block">
+                        Browse Directory →
+                    </a>
+                </div>
+            </div>
+            <div class="mt-16 pt-8 border-t text-center text-xs font-bold uppercase tracking-widest"
+                 style="border-color: rgba(255,255,255,0.07); color: rgba(255,255,255,0.2);">
+                &copy; 2025 Charlotte Startup Index · Built in the Queen City
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // ── Config ──────────────────────────────────────────────────────────────
+        // Paste the published CSV URL of your Pulse Google Sheet tab here.
+        // File → Share → Publish to web → "Pulse" tab → CSV → copy URL
+        const PULSE_SHEET_CSV_URL = '';
+
+        // ── Color palette — matches index.html ──────────────────────────────────
+        const CAT_PALETTE = ['#6366f1','#10b981','#f59e0b','#ec4899','#0ea5e9','#f97316','#8b5cf6','#14b8a6','#ef4444','#a855f7','#84cc16'];
+        function getCatColor(name) {
+            if (!name) return CAT_PALETTE[0];
+            let h = 0;
+            for (let c of name) h = ((h << 5) - h) + c.charCodeAt(0);
+            return CAT_PALETTE[Math.abs(h) % CAT_PALETTE.length];
+        }
+
+        // ── State ────────────────────────────────────────────────────────────────
+        let articles      = [];
+        let activeCompany = 'all';
+
+        // ── Boot ─────────────────────────────────────────────────────────────────
+        window.onload = fetchPulse;
+
+        // ── Data ─────────────────────────────────────────────────────────────────
+        async function fetchPulse() {
+            if (!PULSE_SHEET_CSV_URL) {
+                document.getElementById('loadingState').innerHTML =
+                    '<p class="font-bold text-sm" style="color: #ef4444;">PULSE_SHEET_CSV_URL is not configured yet.</p>';
+                return;
+            }
+            try {
+                const res  = await fetch(PULSE_SHEET_CSV_URL + '&t=' + Date.now());
+                const csv  = await res.text();
+                const parsed = parsePulseCSV(csv);
+
+                // Deduplicate by URL — keep highest score if same article tagged to multiple companies
+                const byUrl = {};
+                parsed.forEach(a => {
+                    if (!byUrl[a.url] || a.score > byUrl[a.url].score) byUrl[a.url] = a;
+                });
+
+                // Filter to within 1 year, sort newest first
+                const cutoff = Date.now() - 365 * 86400000;
+                articles = Object.values(byUrl)
+                    .filter(a => new Date(a.published).getTime() > cutoff)
+                    .sort((a, b) => new Date(b.published) - new Date(a.published));
+
+                updateHeroStats();
+                buildCompanyChips();
+                renderFeed();
+            } catch(e) {
+                document.getElementById('loadingState').innerHTML =
+                    '<p class="font-bold text-sm" style="color: #ef4444;">Error loading feed. Please try again.</p>';
+            }
+        }
+
+        function parsePulseCSV(text) {
+            const lines = text.trim().split('\n');
+            if (lines.length < 2) return [];
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            return lines.slice(1).map(line => {
+                const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                const obj = {};
+                headers.forEach((h, i) => obj[h] = (values[i] || '').replace(/"/g, '').trim());
+                obj.score = parseInt(obj.score) || 0;
+                return obj;
+            }).filter(a => a.title && a.url);
+        }
+
+        // ── Hero stats ───────────────────────────────────────────────────────────
+        function updateHeroStats() {
+            document.getElementById('heroCount').textContent = articles.length;
+            const sources = new Set(articles.map(a => a.source).filter(Boolean));
+            document.getElementById('heroSources').textContent = sources.size;
+            if (articles.length > 0) {
+                const latest = articles[0].fetched || articles[0].published;
+                if (latest) document.getElementById('heroUpdated').textContent = relativeDate(latest);
+            }
+        }
+
+        // ── Company chips ────────────────────────────────────────────────────────
+        function buildCompanyChips() {
+            const companies = [...new Set(articles.map(a => a.company).filter(Boolean))].sort();
+            const container = document.getElementById('companyChips');
+
+            const allChip = `<button onclick="setCompanyFilter('all')"
+                class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase active"
+                style="border-color: var(--dark); background: var(--dark); color: white;">
+                All
+            </button>`;
+
+            const chips = companies.map(c => `
+                <button onclick="setCompanyFilter(${JSON.stringify(c)})"
+                    class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase"
+                    style="border-color: var(--border); background: white; color: var(--dark);">
+                    ${escHtml(c)}
+                </button>
+            `).join('');
+
+            container.innerHTML = allChip + chips;
+        }
+
+        function setCompanyFilter(company) {
+            activeCompany = company;
+            document.querySelectorAll('#companyChips .category-pill').forEach(el => {
+                const label    = el.innerText.trim().toLowerCase();
+                const isActive = (company === 'all')
+                    ? label === 'all'
+                    : label === company.toLowerCase();
+                el.classList.toggle('active', isActive);
+                el.style.background  = isActive ? 'var(--dark)' : 'white';
+                el.style.color       = isActive ? 'white' : 'var(--dark)';
+                el.style.borderColor = isActive ? 'var(--dark)' : 'var(--border)';
+            });
+            renderFeed();
+            window.scrollTo({ top: document.getElementById('chipBar').offsetTop, behavior: 'smooth' });
+        }
+
+        // ── Render ───────────────────────────────────────────────────────────────
+        function renderFeed() {
+            document.getElementById('loadingState').classList.add('hidden');
+            const feed  = document.getElementById('articleFeed');
+            const empty = document.getElementById('emptyState');
+
+            const filtered = activeCompany === 'all'
+                ? articles
+                : articles.filter(a => a.company === activeCompany);
+
+            if (filtered.length === 0) {
+                feed.classList.add('hidden');
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            feed.classList.remove('hidden');
+            feed.innerHTML = filtered.map(renderCard).join('');
+        }
+
+        function renderCard(article) {
+            const color      = getCatColor(article.company);
+            const favicon    = faviconUrl(article.source_url, article.url);
+            const faviconImg = favicon
+                ? `<img src="${favicon}" class="w-4 h-4 rounded-sm flex-shrink-0" onerror="this.style.display='none'" alt="">`
+                : '';
+
+            return `
+            <div class="news-card">
+                <div class="flex items-center gap-2 mb-3 flex-wrap">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        ${faviconImg}
+                        <span class="text-xs font-semibold truncate" style="color: var(--muted);">${escHtml(article.source || 'News')}</span>
+                    </div>
+                    <span style="color: var(--border); flex-shrink: 0;">·</span>
+                    <span class="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md flex-shrink-0"
+                          style="background: ${color}18; color: ${color}; border: 1px solid ${color}28;">
+                        ${escHtml(article.company)}
+                    </span>
+                    <span style="color: var(--border); flex-shrink: 0;">·</span>
+                    <span class="text-xs font-medium flex-shrink-0" style="color: var(--muted);">${relativeDate(article.published)}</span>
+                </div>
+                <a href="${article.url}" target="_blank" rel="noopener noreferrer"
+                   class="font-black text-base leading-snug hover:opacity-60 transition-opacity block"
+                   style="color: var(--dark);">
+                    ${escHtml(article.title)}
+                </a>
+            </div>`;
+        }
+
+        // ── Helpers ──────────────────────────────────────────────────────────────
+        function faviconUrl(sourceUrl, articleUrl) {
+            let domain = '';
+            try { domain = new URL(sourceUrl).hostname; } catch(e) {}
+            if (!domain) { try { domain = new URL(articleUrl).hostname; } catch(e) {} }
+            return domain ? 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=32' : '';
+        }
+
+        function relativeDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return '';
+            const diffDays = Math.floor((Date.now() - d.getTime()) / 86400000);
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7)   return diffDays + 'd ago';
+            const weeks = Math.floor(diffDays / 7);
+            if (weeks < 5)      return weeks + 'w ago';
+            const months = Math.floor(diffDays / 30);
+            if (months < 12)    return months + 'mo ago';
+            return Math.floor(diffDays / 365) + 'y ago';
+        }
+
+        function escHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+    </script>
 </body>
 </html>
