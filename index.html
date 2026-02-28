@@ -408,7 +408,7 @@
             }
             displayLocationClusters();
             render();
-            document.getElementById('explore').scrollIntoView({ behavior: 'smooth' });
+            window.scrollTo({ top: document.getElementById('explore').offsetTop, behavior: 'smooth' });
         }
 
         function closeModal() {
@@ -539,7 +539,7 @@
                 el.style.borderColor = isAll ? 'var(--dark)' : 'var(--border)';
             });
             render();
-            document.getElementById('explore').scrollIntoView({ behavior: 'smooth' });
+            window.scrollTo({ top: document.getElementById('explore').offsetTop, behavior: 'smooth' });
         }
 
         function setFilter(cat) {
@@ -553,7 +553,7 @@
                 el.style.borderColor = isActive ? 'var(--dark)' : 'var(--border)';
             });
             render();
-            document.getElementById('explore').scrollIntoView({ behavior: 'smooth' });
+            window.scrollTo({ top: document.getElementById('explore').offsetTop, behavior: 'smooth' });
         }
 
         function render() {
