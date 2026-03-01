@@ -60,11 +60,59 @@
 
 ### Enhancements Logged
 - **ENH-001**: Reddit social layer for Pulse feed — deferred until core news feed is stable
+- **ENH-002**: More intelligent search for ambiguous company names (Polymer, Path) — per-company `pulse_query` column override implemented in gas-pulse.gs; user needs to populate for known problem companies
 
-### Pulse — Setup Still Required
-The GAS script (`gas-pulse.gs`) is written and in the repo but NOT yet connected to a live Google Sheet. To activate:
-1. Open Google Sheet → Extensions → Apps Script → create file `gas-pulse` → paste contents
-2. Set `CONFIG.SPREADSHEET_ID` (from Sheet URL)
-3. Confirm `CONFIG.SOURCE_SHEET_NAME` matches the startup data tab
-4. Run `setupTrigger()` once, then `runPulseFetch()` once to seed
-5. Publish Pulse tab as CSV → copy URL → paste into `PULSE_SHEET_CSV_URL` in `pulse.html` → push
+---
+
+## Session 2 — 2026-02-28
+
+### Changes Made
+
+**Pulse feed — algorithm improvements (gas-pulse.gs):**
+- Removed `site:{domain}` query — was pulling company's own blog/product pages as "news"
+- Added hard requirement: company name must appear in article title or snippet (word-boundary regex) — blocks unrelated Charlotte stories from passing MIN_SCORE
+- Raised `MIN_SCORE` from 40 → 50
+- Added second query per company targeting CLT local publications: Charlotte Observer, Charlotte Business Journal, QCity Metro, WFAE, WCNC, WBTV, Charlotte Agenda
+- Added `CLT_SOURCE` score bonus (+20) for articles from those CLT publications
+- Added `pulse_query` column support in `getApprovedCompanies()` — per-company query overrides for ambiguous names (e.g. Path, Polymer)
+
+**Pulse feed — filter bug fix (pulse.html):**
+- Company filter chips were broken — `innerText` was returning uppercase text due to CSS `text-transform: uppercase`, making name comparison always fail
+- Fixed by adding `data-company` attribute to each chip; `setCompanyFilter()` now compares `el.dataset.company` instead of `el.innerText`
+
+**Pulse CSV URL:**
+- `PULSE_SHEET_CSV_URL` in `pulse.html` set to live Google Sheets CSV
+
+### Commits Pushed
+
+| hash | description |
+|---|---|
+| `e2a40f5` | Connect Pulse feed to live Google Sheet CSV |
+| `c887664` | Fix Pulse filters; tighten article scoring algorithm |
+
+### Current State of Pulse Feed
+- ~30 clean articles live after re-seed with improved algorithm
+- Path company excluded via manual sheet cleanup — needs `pulse_query` override
+- FastBreak underrepresented — suspected name mismatch (`FastBreak` vs `FastBreak.ai`) or national coverage without Charlotte mention — needs `pulse_query` override
+
+### Pending — Next Session
+1. Add `pulse_query` column to "Live Startups" sheet
+2. Set overrides for known problem companies:
+   - **Path**: `"Path" Charlotte startup software`
+   - **FastBreak**: `"FastBreak.ai" OR "FastBreak" fintech`
+   - **Polymer**: TBD
+3. Clear Pulse tab data rows, re-run `runPulseFetch()` with updated script (CLT sources + pulse_query support)
+4. The updated `gas-pulse.gs` is in the repo but NOT yet pasted into GAS editor — must do in incognito
+
+### Bugs Found
+- None new this session
+
+### Enhancements Logged
+- **ENH-002**: Per-company `pulse_query` override (partially implemented — code done, sheet column not yet added)
+
+### Pulse — Setup Complete
+- GAS script live and connected to Google Sheet (container-bound via Extensions → Apps Script)
+- `SOURCE_SHEET_NAME`: `Live Startups`, `PULSE_SHEET_NAME`: `Pulse`
+- Daily trigger installed via `setupTrigger()` — runs at 6 AM UTC
+- Pulse tab published as CSV → URL pasted into `pulse.html` → live on GitHub Pages
+- **Important**: Run GAS script from incognito window — multiple Chrome accounts cause "unknown error"

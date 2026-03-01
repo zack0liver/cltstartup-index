@@ -1,5 +1,12 @@
 # CLT Startup Index — Enhancements
 
+## ENH-002: More intelligent search for ambiguous company names
+
+Some company names are common words that produce noisy results even with word-boundary matching (e.g. "Polymer" returns articles about the material, "Path" returns unrelated path/trail articles). Possible approaches:
+- Allow per-company search query overrides in the sheet (e.g. a "pulse_query" column)
+- Combine company name with a known keyword alias (e.g. `"Polymer" "Charlotte" software`)
+- Detect low-signal companies and flag them for manual query tuning
+
 ## ENH-001: Reddit layer for Pulse feed
 
 Add Reddit as a social signal source alongside Google News in the Pulse feed.
