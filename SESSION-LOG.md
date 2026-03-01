@@ -96,13 +96,15 @@
 - FastBreak underrepresented — suspected name mismatch (`FastBreak` vs `FastBreak.ai`) or national coverage without Charlotte mention — needs `pulse_query` override
 
 ### Pending — Next Session
-1. Add `pulse_query` column to "Live Startups" sheet
-2. Set overrides for known problem companies:
+1. **Drop Charlotte from primary query** — change default query from `"{name}" Charlotte` to just `"{name}"`. Charlotte was too restrictive; national press covering CLT companies rarely mentions the city. Let scoring handle relevance: CLT_IN_TITLE (+15), CLT_IN_SNIPPET (+8), CLT_SOURCE (+20) already favor local articles. Common-word companies (Path, Polymer) still need `pulse_query` overrides that include Charlotte to stay clean.
+2. Add `pulse_query` column to "Live Startups" sheet
+3. Set overrides for known problem companies:
    - **Path**: `"Path" Charlotte startup software`
-   - **FastBreak**: `"FastBreak.ai" OR "FastBreak" fintech`
+   - **FastBreak**: `"FastBreak.ai" OR "FastBreak" fintech` (drop Charlotte here too — national coverage is the point)
    - **Polymer**: TBD
-3. Clear Pulse tab data rows, re-run `runPulseFetch()` with updated script (CLT sources + pulse_query support)
-4. The updated `gas-pulse.gs` is in the repo but NOT yet pasted into GAS editor — must do in incognito
+4. Consider raising `MIN_SCORE` to 55-60 to compensate for broader queries producing more noise
+5. Clear Pulse tab data rows, re-run `runPulseFetch()` with updated script (CLT sources + pulse_query support)
+6. The updated `gas-pulse.gs` is in the repo but NOT yet pasted into GAS editor — must do in incognito
 
 ### Bugs Found
 - None new this session
