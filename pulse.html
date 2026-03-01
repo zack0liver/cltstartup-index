@@ -282,7 +282,7 @@
             </button>`;
 
             const chips = companies.map(c => `
-                <button onclick="setCompanyFilter(${JSON.stringify(c)})"
+                <button onclick="setCompanyFilter(this.dataset.company)"
                     data-company="${escHtml(c)}"
                     class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase"
                     style="border-color: var(--border); background: white; color: var(--dark);">
