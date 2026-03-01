@@ -23,7 +23,7 @@ var CONFIG = {
   SOURCE_SHEET_NAME: 'Form Responses 1',          // tab with approved startup data
   PULSE_SHEET_NAME:  'Pulse',                     // tab to write articles into
   SLEEP_MS:          1500,                        // ms between RSS fetches
-  MIN_SCORE:         40,                          // minimum relevance score to store
+  MIN_SCORE:         50,                          // minimum relevance score to store
   MAX_AGE_DAYS:      365,                         // purge articles older than this
   WEIGHTS: {
     NAME_IN_TITLE:     50,
@@ -65,9 +65,9 @@ function runPulseFetch() {
 
     companies.forEach(function(company) {
       var queries = ['"' + company.name + '" Charlotte'];
-      if (company.domain) {
-        queries.push('"' + company.name + '" site:' + company.domain);
-      }
+      // site:{domain} query removed — was pulling company's own pages, not news about them
+
+      var nameRegex = new RegExp('\\b' + escapeRegex(company.name.toLowerCase()) + '\\b');
 
       queries.forEach(function(query) {
         Utilities.sleep(CONFIG.SLEEP_MS);
@@ -76,6 +76,8 @@ function runPulseFetch() {
           if (existingUrls[article.url]) return; // deduplicate
           var score = scoreArticle(article, company.name, company.domain);
           if (score < CONFIG.MIN_SCORE) return;
+          // Require company name appears in title or snippet — blocks unrelated Charlotte stories
+          if (!nameRegex.test(article.title.toLowerCase()) && !nameRegex.test(article.snippet.toLowerCase())) return;
           existingUrls[article.url] = true;
           newRows.push([
             company.name,

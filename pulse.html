@@ -275,6 +275,7 @@
             const container = document.getElementById('companyChips');
 
             const allChip = `<button onclick="setCompanyFilter('all')"
+                data-company="all"
                 class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase active"
                 style="border-color: var(--dark); background: var(--dark); color: white;">
                 All
@@ -282,6 +283,7 @@
 
             const chips = companies.map(c => `
                 <button onclick="setCompanyFilter(${JSON.stringify(c)})"
+                    data-company="${escHtml(c)}"
                     class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase"
                     style="border-color: var(--border); background: white; color: var(--dark);">
                     ${escHtml(c)}
@@ -294,10 +296,7 @@
         function setCompanyFilter(company) {
             activeCompany = company;
             document.querySelectorAll('#companyChips .category-pill').forEach(el => {
-                const label    = el.innerText.trim().toLowerCase();
-                const isActive = (company === 'all')
-                    ? label === 'all'
-                    : label === company.toLowerCase();
+                const isActive = el.dataset.company === company;
                 el.classList.toggle('active', isActive);
                 el.style.background  = isActive ? 'var(--dark)' : 'white';
                 el.style.color       = isActive ? 'white' : 'var(--dark)';
