@@ -415,6 +415,13 @@
             window.scrollTo({ top: document.getElementById('explore').offsetTop, behavior: 'smooth' });
         }
 
+        function updateHqHubToggle() {
+            const val = document.querySelector('input[name="hqhub"]:checked').value;
+            const isHQ = val === 'HQ';
+            document.getElementById('hqLabel').style.cssText = `background: ${isHQ ? 'var(--dark)' : 'var(--bg)'}; color: ${isHQ ? 'white' : 'var(--muted)'}; border: 1.5px solid ${isHQ ? 'var(--dark)' : 'var(--border)'};`;
+            document.getElementById('hubLabel').style.cssText = `background: ${!isHQ ? 'var(--dark)' : 'var(--bg)'}; color: ${!isHQ ? 'white' : 'var(--muted)'}; border: 1.5px solid ${!isHQ ? 'var(--dark)' : 'var(--border)'};`;
+        }
+
         function closeModal() {
             document.body.style.overflow = '';
             document.getElementById('uiModal').classList.add('hidden');
@@ -720,7 +727,7 @@
             const catOptions = uniqueCategories.map(c => `<option value="${c}">${c}</option>`).join('');
 
             const submitSubtitles = [
-                "Know a startup we're missing? Put it on the map.",
+                "Startups move fast. Help the index keep up.",
                 "Every great company starts somewhere. Make sure we know about it.",
                 "The 704 is building. Don't let anyone miss it."
             ];
@@ -742,7 +749,7 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="space-y-1">
-                                <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Industry / Category</label>
+                                <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Industry</label>
                                 <select name="category" required
                                         class="w-full px-3 py-2.5 rounded-xl outline-none transition-all text-sm appearance-none font-medium"
                                         style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);">
@@ -759,19 +766,23 @@
                             </div>
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Tagline</label>
-                            <input type="text" name="description" required placeholder="What are you building?"
+                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">What They're Building</label>
+                            <input type="text" name="description" required placeholder="The elevator pitch. 10 seconds. Go."
                                    class="w-full px-3 py-2.5 rounded-xl outline-none transition-all text-sm font-medium"
                                    style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
                                    onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="space-y-1">
-                                <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Location <span class="font-medium normal-case tracking-normal" style="color: var(--muted);">(optional)</span></label>
-                                <input type="text" name="location" placeholder="e.g. South End, Uptown"
-                                       class="w-full px-3 py-2.5 rounded-xl outline-none transition-all text-sm font-medium"
-                                       style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
-                                       onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
+                                <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Charlotte Presence</label>
+                                <div class="flex gap-2">
+                                    <label id="hqLabel" class="flex-1 text-center py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-all" style="background: var(--dark); color: white; border: 1.5px solid var(--dark);">
+                                        <input type="radio" name="hqhub" value="HQ" class="hidden" checked onchange="updateHqHubToggle()"> HQ
+                                    </label>
+                                    <label id="hubLabel" class="flex-1 text-center py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-all" style="background: var(--bg); color: var(--muted); border: 1.5px solid var(--border);">
+                                        <input type="radio" name="hqhub" value="Hub" class="hidden" onchange="updateHqHubToggle()"> Hub
+                                    </label>
+                                </div>
                             </div>
                             <div class="space-y-1">
                                 <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">LinkedIn <span class="font-medium normal-case tracking-normal" style="color: var(--muted);">(optional)</span></label>
@@ -780,6 +791,13 @@
                                        style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
                                        onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
                             </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase tracking-widest" style="color: var(--muted);">Neighborhood <span class="font-medium normal-case tracking-normal" style="color: var(--muted);">(optional)</span></label>
+                            <input type="text" name="neighborhood" placeholder="e.g. South End, Uptown"
+                                   class="w-full px-3 py-2.5 rounded-xl outline-none transition-all text-sm font-medium"
+                                   style="background: var(--bg); border: 1.5px solid var(--border); color: var(--dark);"
+                                   onfocus="this.style.borderColor='var(--dark)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
                         <div id="formErrorMessage" class="hidden p-3 rounded-xl text-sm font-bold" style="background: #fef2f2; color: #ef4444;"></div>
                         <button type="submit" id="submitBtn"
@@ -800,12 +818,14 @@
                 errorMsg.classList.add('hidden');
 
                 const formData = new FormData(e.target);
+                const hqHub = formData.get('hqhub');
+                const neighborhood = (formData.get('neighborhood') || '').trim();
                 const data = {
                     title: formData.get('title'),
                     category: formData.get('category'),
                     description: formData.get('description'),
                     link: formData.get('link'),
-                    location: formData.get('location'),
+                    location: hqHub + ' in ' + (neighborhood || 'CLT'),
                     linkedin: formData.get('linkedin'),
                     timestamp: new Date().toLocaleString()
                 };
