@@ -1,5 +1,21 @@
 # CLT Startup Index — Enhancements
 
+## ENH-004: Automated funding stage updates
+
+Auto-detect and update the `lastfunding` column (values: Pre-seed, Seed, Series A, Series B, Series C, PE Growth, etc.) by scanning Pulse articles for funding-related keywords. A GAS function runs after each `runPulseFetch()` and checks new articles for signals like "raises", "secures", "closes", "funding round", "Series A", "seed round", etc. If a match is found, update the company's `lastfunding` cell in the Live Startups sheet.
+
+**Approach:**
+- Regex patterns to detect funding stage and round type from article title/snippet
+- Only update if detected stage is newer/higher than current value (e.g. don't overwrite "Series B" with "Seed")
+- Log all auto-updates with article URL as source for auditability
+- Could also populate a `lastfunding_date` column and `lastfunding_source` URL column for transparency
+
+**Notes:**
+- Requires a funding stage ordering/hierarchy to prevent regressions
+- Edge case: some articles mention a competitor's funding, not the company's own — context keyword check helps filter this
+
+---
+
 ## ENH-003: Manual article submissions tab
 
 Add a `Manual` tab to the Google Sheet (columns: company, title, url, published) as a permanent record for manually found articles. GAS reads this tab on every `runPulseFetch()` run and injects any unrecognized URLs into the Pulse tab with `score = 100`, ensuring they always pass the ≥60 display filter. Manual entries survive Pulse tab re-seeds since the Manual tab is the source of truth.
