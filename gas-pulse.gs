@@ -406,10 +406,24 @@ function getExistingUrls(pulseSheet) {
 function purgeOldArticles(pulseSheet) {
   var lastRow = pulseSheet.getLastRow();
   if (lastRow < 2) return;
-  var cutoff   = new Date(Date.now() - CONFIG.MAX_AGE_DAYS * 86400000);
-  var dates    = pulseSheet.getRange(2, COLS.PUBLISHED, lastRow - 1, 1).getValues();
+
+  // Find source_type column dynamically — manual rows are never purged
+  var headers       = pulseSheet.getRange(1, 1, 1, pulseSheet.getLastColumn()).getValues()[0];
+  var sourceTypeCol = -1;
+  for (var h = 0; h < headers.length; h++) {
+    if (headers[h].toString().toLowerCase().trim() === 'source_type') { sourceTypeCol = h + 1; break; }
+  }
+
+  var numDataRows  = lastRow - 1;
+  var cutoff       = new Date(Date.now() - CONFIG.MAX_AGE_DAYS * 86400000);
+  var dates        = pulseSheet.getRange(2, COLS.PUBLISHED, numDataRows, 1).getValues();
+  var sourceTypes  = sourceTypeCol !== -1
+    ? pulseSheet.getRange(2, sourceTypeCol, numDataRows, 1).getValues()
+    : [];
+
   var toDelete = [];
   for (var i = dates.length - 1; i >= 0; i--) {
+    if (sourceTypeCol !== -1 && (sourceTypes[i][0] || '').toString().toLowerCase().trim() === 'manual') continue;
     var d = new Date(dates[i][0]);
     if (!isNaN(d.getTime()) && d < cutoff) toDelete.push(i + 2);
   }
