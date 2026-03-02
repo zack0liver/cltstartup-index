@@ -24,6 +24,7 @@ var CONFIG = {
 };
 
 // CLT publications — articles from these sources get CLT_SOURCE score bonus
+// Also used to build the targeted CLT site: search query (query3 in runPulseFetch)
 var CLT_SOURCES = [
   'charlotteobserver.com',
   'bizjournals.com',
@@ -31,10 +32,13 @@ var CLT_SOURCES = [
   'wfae.org',
   'wcnc.com',
   'wbtv.com',
+  'wsoctv.com',
   'axios.com',
   'charlottemagazine.com',
   'charlotteledger.substack.com',
-  'tinymoney.com'
+  'tinymoney.com',
+  'hypepotamus.com',
+  'builtincharlotte.com'
 ];
 
 // Stopwords stripped from category + description during context keyword extraction
@@ -106,11 +110,16 @@ function runPulseFetch() {
 
       Logger.log(company.name + ' — context keywords: [' + company.contextKeywords.join(', ') + ']');
 
-      // Google News: broad query + Charlotte-specific query
+      // Query 3: Google News scoped to CLT publications only — built from CLT_SOURCES
+      var siteClause = CLT_SOURCES.map(function(d) { return 'site:' + d; }).join(' OR ');
+      var query3 = '"' + company.name + '" (' + siteClause + ')';
+
+      // Google News: broad + Charlotte-specific + CLT publications targeted
       // Bing News: broad query only (catches press releases Google misses)
       var sources = [
         { fn: fetchGoogleNewsRSS, query: query1 },
         { fn: fetchGoogleNewsRSS, query: query2 },
+        { fn: fetchGoogleNewsRSS, query: query3 },
         { fn: fetchBingNewsRSS,   query: query1 }
       ];
 
