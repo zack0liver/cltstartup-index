@@ -118,3 +118,27 @@
 - Daily trigger installed via `setupTrigger()` — runs at 6 AM UTC
 - Pulse tab published as CSV → URL pasted into `pulse.html` → live on GitHub Pages
 - **Important**: Run GAS script from incognito window — multiple Chrome accounts cause "unknown error"
+
+---
+
+## Session 3 — 2026-03-01
+
+### Changes Made
+
+**Bug fix — mobile card width (index.html):**
+- Cards were not fitting mobile viewport width — horizontal overflow caused layout to break on small screens
+- Root cause: `<main class="flex-1">` was missing `min-w-0`. In flexbox, flex children default to `min-width: auto`, so the element expanded to fit its widest content (long location chip names like "Dilworth/Myers Park/Montford/Park Rd") rather than constraining to the viewport
+- Fix: added `min-w-0` to `<main>` → `<main class="flex-1 min-w-0">`
+- Side effect resolved: mobile location chips' `overflow-x-auto` now works correctly since `main` is properly constrained
+
+### Commits Pushed
+
+| hash | description |
+|---|---|
+| `98a9ed6` | Fix mobile card width: add min-w-0 to main flex child |
+
+### Bugs Found
+- None new
+
+### Enhancements Logged
+- None
