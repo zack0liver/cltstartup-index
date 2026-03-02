@@ -8,7 +8,7 @@ var CONFIG = {
   SOURCE_SHEET_NAME: 'Live Startups',
   PULSE_SHEET_NAME:  'Pulse',
   SLEEP_MS:          1500,
-  MIN_SCORE:         50,
+  MIN_SCORE:         50,   // Articles 50-59 stored but not displayed (pulse.html filters to ≥60)
   MAX_AGE_DAYS:      365,
   WEIGHTS: {
     NAME_IN_TITLE:     50,
@@ -17,10 +17,25 @@ var CONFIG = {
     DOMAIN_IN_SNIPPET: 10,
     CLT_IN_TITLE:      15,
     CLT_IN_SNIPPET:     8,
+    CLT_SOURCE:        20,
     WITHIN_6_MONTHS:   10,
     WITHIN_1_YEAR:      5
   }
 };
+
+// CLT publications — articles from these sources get CLT_SOURCE score bonus
+var CLT_SOURCES = [
+  'charlotteobserver.com',
+  'bizjournals.com',
+  'qcitymetro.com',
+  'wfae.org',
+  'wcnc.com',
+  'wbtv.com',
+  'axios.com',
+  'charlottemagazine.com',
+  'charlotteledger.substack.com',
+  'tinymoney.com'
+];
 
 var COLS = { COMPANY: 1, TITLE: 2, URL: 3, SOURCE: 4, SOURCE_URL: 5, PUBLISHED: 6, SCORE: 7, FETCHED: 8 };
 var NUM_COLS = 8;
@@ -44,18 +59,25 @@ function runPulseFetch() {
     Logger.log('Processing ' + companies.length + ' approved companies...');
 
     companies.forEach(function(company) {
-      var queries = ['"' + company.name + '" Charlotte'];
-      var nameRegex = new RegExp('\\b' + escapeRegex(company.name.toLowerCase()) + '\\b');
+      // Query 1: pulse_query override if set, otherwise just the company name
+      var query1 = company.pulseQuery || ('"' + company.name + '"');
+      // Query 2: always run a Charlotte-specific query to catch local CLT coverage
+      var query2 = '"' + company.name + '" Charlotte';
 
-      queries.forEach(function(query) {
+      var nameRegex       = new RegExp('\\b' + escapeRegex(company.name.toLowerCase()) + '\\b');
+      var companySeenUrls = {}; // dedup across both queries for this company
+
+      [query1, query2].forEach(function(query) {
         Utilities.sleep(CONFIG.SLEEP_MS);
         var articles = fetchGoogleNewsRSS(query);
         articles.forEach(function(article) {
-          if (existingUrls[article.url]) return;
+          if (existingUrls[article.url])    return; // already in sheet
+          if (companySeenUrls[article.url]) return; // already found this run
           var score = scoreArticle(article, company.name, company.domain);
           if (score < CONFIG.MIN_SCORE) return;
           if (!nameRegex.test(article.title.toLowerCase()) && !nameRegex.test(article.snippet.toLowerCase())) return;
-          existingUrls[article.url] = true;
+          existingUrls[article.url]    = true;
+          companySeenUrls[article.url] = true;
           newRows.push([
             company.name,
             article.title,
@@ -89,11 +111,12 @@ function getApprovedCompanies(sheet) {
   var data = sheet.getDataRange().getValues();
   if (data.length < 2) return [];
 
-  var headers   = data[0].map(function(h) { return h.toString().toLowerCase().trim(); });
-  var titleIdx  = headers.indexOf('title');
-  var domainIdx = headers.indexOf('domain');
-  var linkIdx   = headers.indexOf('link');
-  var statusIdx = headers.indexOf('status');
+  var headers       = data[0].map(function(h) { return h.toString().toLowerCase().trim(); });
+  var titleIdx      = headers.indexOf('title');
+  var domainIdx     = headers.indexOf('domain');
+  var linkIdx       = headers.indexOf('link');
+  var statusIdx     = headers.indexOf('status');
+  var pulseQueryIdx = headers.indexOf('pulse_query');
 
   if (titleIdx === -1 || statusIdx === -1) {
     Logger.log('ERROR: Required columns (title, status) not found in source sheet.');
@@ -119,7 +142,12 @@ function getApprovedCompanies(sheet) {
       domain = row[linkIdx].toString().trim().replace(/^https?:\/\//, '').split('/')[0];
     }
 
-    companies.push({ name: name, domain: domain });
+    var pulseQuery = '';
+    if (pulseQueryIdx !== -1 && row[pulseQueryIdx]) {
+      pulseQuery = row[pulseQueryIdx].toString().trim();
+    }
+
+    companies.push({ name: name, domain: domain, pulseQuery: pulseQuery });
   }
 
   return companies;
@@ -226,6 +254,7 @@ function scoreArticle(article, companyName, companyDomain) {
   var urlLow     = article.url.toLowerCase();
   var nameLow    = companyName.toLowerCase();
   var domainLow  = (companyDomain || '').toLowerCase();
+  var sourceLow  = (article.sourceUrl || '').toLowerCase();
 
   var nameRegex = new RegExp('\\b' + escapeRegex(nameLow) + '\\b');
   if (nameRegex.test(titleLow))   score += CONFIG.WEIGHTS.NAME_IN_TITLE;
@@ -238,6 +267,11 @@ function scoreArticle(article, companyName, companyDomain) {
 
   if (/\bcharlotte\b/.test(titleLow)   || /\bclt\b/.test(titleLow))   score += CONFIG.WEIGHTS.CLT_IN_TITLE;
   if (/\bcharlotte\b/.test(snippetLow) || /\bclt\b/.test(snippetLow)) score += CONFIG.WEIGHTS.CLT_IN_SNIPPET;
+
+  var isCltSource = CLT_SOURCES.some(function(domain) {
+    return sourceLow.includes(domain) || urlLow.includes(domain);
+  });
+  if (isCltSource) score += CONFIG.WEIGHTS.CLT_SOURCE;
 
   var ageDays = (Date.now() - article.published.getTime()) / 86400000;
   if (ageDays <= 180)      score += CONFIG.WEIGHTS.WITHIN_6_MONTHS;
