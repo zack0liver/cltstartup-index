@@ -136,8 +136,9 @@ function runPulseFetch() {
           // Hard requirement: company name must appear in title or snippet
           if (!nameRegex.test(article.title.toLowerCase()) && !nameRegex.test(article.snippet.toLowerCase())) return;
 
-          // Hard requirement: at least one context keyword must appear in title or snippet
-          if (company.contextKeywords.length > 0) {
+          // Hard requirement: context keyword match — only enforced for ambiguous companies
+          // (those with pulse_query set). All others rely on score + name matching alone.
+          if (company.pulseQuery && company.contextKeywords.length > 0) {
             var haystack = article.title.toLowerCase() + ' ' + article.snippet.toLowerCase();
             var hasContext = company.contextKeywords.some(function(kw) {
               return haystack.includes(kw);

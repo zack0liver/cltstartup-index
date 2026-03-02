@@ -230,10 +230,10 @@
                     if (!byUrl[a.url] || a.score > byUrl[a.url].score) byUrl[a.url] = a;
                 });
 
-                // Filter to within 1 year, score ≥ 60 (50-59 stored in sheet as debug buffer), sort newest first
+                // Filter: within 1 year, score ≥ 60, not manually excluded
                 const cutoff = Date.now() - 365 * 86400000;
                 articles = Object.values(byUrl)
-                    .filter(a => new Date(a.published).getTime() > cutoff && a.score >= 60)
+                    .filter(a => new Date(a.published).getTime() > cutoff && a.score >= 60 && !a.exclude)
                     .sort((a, b) => new Date(b.published) - new Date(a.published));
 
                 updateHeroStats();
