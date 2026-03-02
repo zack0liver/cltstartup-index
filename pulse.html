@@ -233,7 +233,7 @@
                 // Filter: within 1 year, score ≥ 60, not manually excluded
                 const cutoff = Date.now() - 365 * 86400000;
                 articles = Object.values(byUrl)
-                    .filter(a => new Date(a.published).getTime() > cutoff && a.score >= 60 && !a.exclude)
+                    .filter(a => new Date(a.published).getTime() > cutoff && a.score >= 60 && (a.exclude || '').toLowerCase() !== 'exclude')
                     .sort((a, b) => new Date(b.published) - new Date(a.published));
 
                 updateHeroStats();
