@@ -102,13 +102,21 @@ function runPulseFetch() {
       var query2 = '"' + company.name + '" Charlotte';
 
       var nameRegex       = new RegExp('\\b' + escapeRegex(company.name.toLowerCase()) + '\\b');
-      var companySeenUrls = {}; // dedup across both queries for this company
+      var companySeenUrls = {}; // dedup across all queries/sources for this company
 
       Logger.log(company.name + ' — context keywords: [' + company.contextKeywords.join(', ') + ']');
 
-      [query1, query2].forEach(function(query) {
+      // Google News: broad query + Charlotte-specific query
+      // Bing News: broad query only (catches press releases Google misses)
+      var sources = [
+        { fn: fetchGoogleNewsRSS, query: query1 },
+        { fn: fetchGoogleNewsRSS, query: query2 },
+        { fn: fetchBingNewsRSS,   query: query1 }
+      ];
+
+      sources.forEach(function(source) {
         Utilities.sleep(CONFIG.SLEEP_MS);
-        var articles = fetchGoogleNewsRSS(query);
+        var articles = source.fn(source.query);
         articles.forEach(function(article) {
           if (existingUrls[article.url])    return;
           if (companySeenUrls[article.url]) return;
@@ -141,8 +149,8 @@ function runPulseFetch() {
             new Date().toISOString()
           ]);
         });
-      });
-    });
+      }); // end sources
+    }); // end companies
 
     if (newRows.length > 0) {
       var lastRow = Math.max(pulseSheet.getLastRow(), 1);
@@ -225,12 +233,27 @@ function fetchGoogleNewsRSS(query) {
   try {
     var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
     if (response.getResponseCode() !== 200) {
-      Logger.log('Non-200 for query: ' + query);
+      Logger.log('Non-200 for Google query: ' + query);
       return [];
     }
     return parseRSSFeed(response.getContentText());
   } catch(e) {
-    Logger.log('Fetch error for "' + query + '": ' + e);
+    Logger.log('Fetch error (Google) for "' + query + '": ' + e);
+    return [];
+  }
+}
+
+function fetchBingNewsRSS(query) {
+  var url = 'https://www.bing.com/news/search?q=' + encodeURIComponent(query) + '&format=rss';
+  try {
+    var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (response.getResponseCode() !== 200) {
+      Logger.log('Non-200 for Bing query: ' + query);
+      return [];
+    }
+    return parseRSSFeed(response.getContentText());
+  } catch(e) {
+    Logger.log('Fetch error (Bing) for "' + query + '": ' + e);
     return [];
   }
 }
