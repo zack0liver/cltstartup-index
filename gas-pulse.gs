@@ -37,8 +37,45 @@ var CLT_SOURCES = [
   'tinymoney.com'
 ];
 
+// Stopwords stripped from category + description during context keyword extraction
+var STOPWORDS = [
+  'the','a','an','and','or','but','in','on','at','to','for','of','with','by','from',
+  'is','are','was','were','be','been','have','has','had','do','does','did','will',
+  'would','could','should','may','might','that','this','these','those','we','you',
+  'they','it','its','our','your','their','who','which','what','how','when','where',
+  'why','all','any','each','every','both','few','more','most','other','some','such',
+  'not','only','own','same','so','than','too','very','just','about','into','never',
+  'sleep','always','across','built','driven','focused','based','led','powered',
+  // Generic business terms that don't disambiguate
+  'help','helps','helping','platform','software','solution','solutions','company',
+  'startup','tech','technology','inc','llc','corp','co','app','tool','tools',
+  'service','services','product','products','team','teams','work','works','make',
+  'makes','build','builds','building','use','uses','used','get','gets','new','big',
+  'small','first','local','national','modern','simple','smart','fast','best','top',
+  'one','two','three','leading','innovative','seamless','powerful','world','next'
+];
+
 var COLS = { COMPANY: 1, TITLE: 2, URL: 3, SOURCE: 4, SOURCE_URL: 5, PUBLISHED: 6, SCORE: 7, FETCHED: 8 };
 var NUM_COLS = 8;
+
+// ── Context keyword extraction ────────────────────────────────────────────────
+function extractContextKeywords(category, description, companyName) {
+  var text = (category + ' ' + description).toLowerCase();
+  var companyTokens = companyName.toLowerCase().split(/\s+/);
+  var words = text.split(/[\s,.\-\/|()"'!?]+/);
+  var seen = {};
+  var keywords = [];
+  words.forEach(function(word) {
+    word = word.replace(/[^a-z]/g, '');
+    if (word.length < 3) return;
+    if (STOPWORDS.indexOf(word) !== -1) return;
+    if (companyTokens.indexOf(word) !== -1) return;
+    if (seen[word]) return;
+    seen[word] = true;
+    keywords.push(word);
+  });
+  return keywords;
+}
 
 function runPulseFetch() {
   try {
@@ -67,15 +104,30 @@ function runPulseFetch() {
       var nameRegex       = new RegExp('\\b' + escapeRegex(company.name.toLowerCase()) + '\\b');
       var companySeenUrls = {}; // dedup across both queries for this company
 
+      Logger.log(company.name + ' — context keywords: [' + company.contextKeywords.join(', ') + ']');
+
       [query1, query2].forEach(function(query) {
         Utilities.sleep(CONFIG.SLEEP_MS);
         var articles = fetchGoogleNewsRSS(query);
         articles.forEach(function(article) {
-          if (existingUrls[article.url])    return; // already in sheet
-          if (companySeenUrls[article.url]) return; // already found this run
+          if (existingUrls[article.url])    return;
+          if (companySeenUrls[article.url]) return;
+
           var score = scoreArticle(article, company.name, company.domain);
           if (score < CONFIG.MIN_SCORE) return;
+
+          // Hard requirement: company name must appear in title or snippet
           if (!nameRegex.test(article.title.toLowerCase()) && !nameRegex.test(article.snippet.toLowerCase())) return;
+
+          // Hard requirement: at least one context keyword must appear in title or snippet
+          if (company.contextKeywords.length > 0) {
+            var haystack = article.title.toLowerCase() + ' ' + article.snippet.toLowerCase();
+            var hasContext = company.contextKeywords.some(function(kw) {
+              return haystack.includes(kw);
+            });
+            if (!hasContext) return;
+          }
+
           existingUrls[article.url]    = true;
           companySeenUrls[article.url] = true;
           newRows.push([
@@ -111,12 +163,15 @@ function getApprovedCompanies(sheet) {
   var data = sheet.getDataRange().getValues();
   if (data.length < 2) return [];
 
-  var headers       = data[0].map(function(h) { return h.toString().toLowerCase().trim(); });
-  var titleIdx      = headers.indexOf('title');
-  var domainIdx     = headers.indexOf('domain');
-  var linkIdx       = headers.indexOf('link');
-  var statusIdx     = headers.indexOf('status');
-  var pulseQueryIdx = headers.indexOf('pulse_query');
+  var headers          = data[0].map(function(h) { return h.toString().toLowerCase().trim(); });
+  var titleIdx         = headers.indexOf('title');
+  var domainIdx        = headers.indexOf('domain');
+  var linkIdx          = headers.indexOf('link');
+  var statusIdx        = headers.indexOf('status');
+  var categoryIdx      = headers.indexOf('category');
+  var descriptionIdx   = headers.indexOf('description');
+  var pulseQueryIdx    = headers.indexOf('pulse_query');
+  var pulseKeywordsIdx = headers.indexOf('pulse_keywords');
 
   if (titleIdx === -1 || statusIdx === -1) {
     Logger.log('ERROR: Required columns (title, status) not found in source sheet.');
@@ -142,12 +197,24 @@ function getApprovedCompanies(sheet) {
       domain = row[linkIdx].toString().trim().replace(/^https?:\/\//, '').split('/')[0];
     }
 
-    var pulseQuery = '';
-    if (pulseQueryIdx !== -1 && row[pulseQueryIdx]) {
-      pulseQuery = row[pulseQueryIdx].toString().trim();
+    var pulseQuery = pulseQueryIdx !== -1 && row[pulseQueryIdx]
+      ? row[pulseQueryIdx].toString().trim() : '';
+
+    // Build context keywords: manual pulse_keywords override takes priority
+    var contextKeywords = [];
+    var pulseKeywordsRaw = pulseKeywordsIdx !== -1 && row[pulseKeywordsIdx]
+      ? row[pulseKeywordsIdx].toString().trim() : '';
+
+    if (pulseKeywordsRaw) {
+      contextKeywords = pulseKeywordsRaw.toLowerCase().split(',')
+        .map(function(k) { return k.trim(); }).filter(Boolean);
+    } else {
+      var category    = categoryIdx !== -1    ? (row[categoryIdx]    || '').toString().trim() : '';
+      var description = descriptionIdx !== -1 ? (row[descriptionIdx] || '').toString().trim() : '';
+      contextKeywords = extractContextKeywords(category, description, name);
     }
 
-    companies.push({ name: name, domain: domain, pulseQuery: pulseQuery });
+    companies.push({ name: name, domain: domain, pulseQuery: pulseQuery, contextKeywords: contextKeywords });
   }
 
   return companies;
