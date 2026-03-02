@@ -1,5 +1,13 @@
 # CLT Startup Index — Enhancements
 
+## ENH-003: Manual article submissions tab
+
+Add a `Manual` tab to the Google Sheet (columns: company, title, url, published) as a permanent record for manually found articles. GAS reads this tab on every `runPulseFetch()` run and injects any unrecognized URLs into the Pulse tab with `score = 100`, ensuring they always pass the ≥60 display filter. Manual entries survive Pulse tab re-seeds since the Manual tab is the source of truth.
+
+Implementation: ~20 lines of GAS — `injectManualArticles(pulseSheet, existingUrls)` called at the start of `runPulseFetch()`.
+
+---
+
 ## ENH-002: More intelligent search for ambiguous company names
 
 Some company names are common words that produce noisy results even with word-boundary matching (e.g. "Polymer" returns articles about the material, "Path" returns unrelated path/trail articles). Possible approaches:
