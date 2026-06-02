@@ -489,27 +489,48 @@ function cleanExistingPulse() {
     return;
   }
 
+  var scoreCol = colIdx('score');
+
   var allData = pulseSheet.getRange(2, 1, lastRow - 1, numCols).getValues();
   var kept = [];
+  var seenUrls = {};
 
   allData.forEach(function(row) {
+    var url = (row[urlCol] || '').toString().trim();
+
     // Never touch manual entries
     if (sourceTypeCol !== -1 && (row[sourceTypeCol] || '').toString().toLowerCase().trim() === 'manual') {
+      seenUrls[url] = true;
       kept.push(row); return;
     }
-    // Keep already-excluded rows (invisible in UI but preserve the record)
+    // Keep already-excluded rows
     if (excludeCol !== -1 && (row[excludeCol] || '').toString().toLowerCase().trim() === 'exclude') {
+      seenUrls[url] = true;
       kept.push(row); return;
     }
 
     var article = {
       title:     (row[titleCol] || '').toString(),
-      url:       (row[urlCol] || '').toString(),
+      url:       url,
       snippet:   '',
       sourceUrl: sourceUrlCol !== -1 ? (row[sourceUrlCol] || '').toString() : ''
     };
 
-    if (hasLocationOrBusinessSignal(article, '')) kept.push(row);
+    if (!hasLocationOrBusinessSignal(article, '')) return;
+
+    // Dedup by URL — keep highest score
+    if (seenUrls[url]) {
+      var existingIdx = kept.findIndex(function(k) { return (k[urlCol] || '').toString().trim() === url; });
+      if (existingIdx !== -1 && scoreCol !== -1) {
+        var existingScore = parseInt(kept[existingIdx][scoreCol]) || 0;
+        var thisScore     = parseInt(row[scoreCol]) || 0;
+        if (thisScore > existingScore) kept[existingIdx] = row;
+      }
+      return;
+    }
+
+    seenUrls[url] = true;
+    kept.push(row);
   });
 
   // Clear all data rows, rewrite only the keepers in one batch call
