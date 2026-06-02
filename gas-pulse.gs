@@ -473,10 +473,11 @@ function cleanExistingPulse() {
   var lastRow = pulseSheet.getLastRow();
   if (lastRow < 2) { Logger.log('No data rows to clean.'); return; }
 
-  var headers = pulseSheet.getRange(1, 1, 1, pulseSheet.getLastColumn()).getValues()[0]
+  var numCols = pulseSheet.getLastColumn();
+  var headers = pulseSheet.getRange(1, 1, 1, numCols).getValues()[0]
     .map(function(h) { return h.toString().toLowerCase().trim(); });
 
-  function colIdx(name) { var i = headers.indexOf(name); return i === -1 ? -1 : i + 1; }
+  function colIdx(name) { var i = headers.indexOf(name); return i === -1 ? -1 : i; } // 0-based
   var titleCol      = colIdx('title');
   var urlCol        = colIdx('url');
   var sourceUrlCol  = colIdx('source_url');
@@ -488,40 +489,36 @@ function cleanExistingPulse() {
     return;
   }
 
-  var numDataRows = lastRow - 1;
-  var allData = pulseSheet.getRange(2, 1, numDataRows, pulseSheet.getLastColumn()).getValues();
-  var toDelete = [];
-  var kept = 0;
+  var allData = pulseSheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+  var kept = [];
 
-  // Iterate bottom-to-top so row numbers stay valid as we delete
-  for (var i = allData.length - 1; i >= 0; i--) {
-    var row = allData[i];
-
+  allData.forEach(function(row) {
     // Never touch manual entries
-    if (sourceTypeCol !== -1 && (row[sourceTypeCol - 1] || '').toString().toLowerCase().trim() === 'manual') {
-      kept++; continue;
+    if (sourceTypeCol !== -1 && (row[sourceTypeCol] || '').toString().toLowerCase().trim() === 'manual') {
+      kept.push(row); return;
     }
-    // Already excluded — leave them (they're invisible in the UI anyway)
-    if (excludeCol !== -1 && (row[excludeCol - 1] || '').toString().toLowerCase().trim() === 'exclude') {
-      kept++; continue;
+    // Keep already-excluded rows (invisible in UI but preserve the record)
+    if (excludeCol !== -1 && (row[excludeCol] || '').toString().toLowerCase().trim() === 'exclude') {
+      kept.push(row); return;
     }
 
     var article = {
-      title:     (row[titleCol - 1] || '').toString(),
-      url:       (row[urlCol - 1] || '').toString(),
+      title:     (row[titleCol] || '').toString(),
+      url:       (row[urlCol] || '').toString(),
       snippet:   '',
-      sourceUrl: sourceUrlCol !== -1 ? (row[sourceUrlCol - 1] || '').toString() : ''
+      sourceUrl: sourceUrlCol !== -1 ? (row[sourceUrlCol] || '').toString() : ''
     };
 
-    if (!hasLocationOrBusinessSignal(article, '')) {
-      toDelete.push(i + 2);
-    } else {
-      kept++;
-    }
+    if (hasLocationOrBusinessSignal(article, '')) kept.push(row);
+  });
+
+  // Clear all data rows, rewrite only the keepers in one batch call
+  pulseSheet.getRange(2, 1, lastRow - 1, numCols).clearContent();
+  if (kept.length > 0) {
+    pulseSheet.getRange(2, 1, kept.length, numCols).setValues(kept);
   }
 
-  toDelete.forEach(function(rowNum) { pulseSheet.deleteRow(rowNum); });
-  Logger.log('cleanExistingPulse: deleted ' + toDelete.length + ' rows, kept ' + kept + '.');
+  Logger.log('cleanExistingPulse: kept ' + kept.length + ' of ' + allData.length + ' rows (' + (allData.length - kept.length) + ' deleted).');
 }
 
 // ── Trigger setup — run once to install ──────────────────────────────────────
