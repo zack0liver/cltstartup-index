@@ -1,5 +1,26 @@
 # CLT Startup Index — Enhancements
 
+## ENH-007: Smarter exclusion criteria
+
+The current exclusion model is binary — a row is either flagged `exclude` or it isn't. Improvements to consider:
+
+- **Per-company blocklist** — a `pulse_exclude_keywords` column in the Live Startups sheet; any article whose title contains one of those terms gets dropped at ingest. Useful for companies like "Passport" where specific false-positive topics (travel, immigration) recur.
+- **Domain blocklist** — a global list of source domains known to produce junk (aggregator spam, SEO farms). Articles from these domains are rejected regardless of score.
+- **Score floor by source type** — require a higher minimum score for non-CLT sources to reduce noise from national publications that loosely mention a company name.
+- **UI-side exclusion** — add an "exclude" button on each Pulse card in `pulse.html` that writes back to the sheet via a lightweight GAS web app endpoint (`doPost`), so bad articles can be flagged without opening the sheet.
+
+---
+
+## ENH-006: Stronger deduplication
+
+Current dedup catches identical URLs but misses near-duplicates. Improvements:
+
+- **Title similarity dedup** — detect articles with near-identical titles (same story, different syndication URLs) using a simple token overlap check. Keep the highest-scoring version.
+- **Cross-company dedup** — the same article can legitimately appear under multiple companies if it mentions both. Currently `pulse.html` deduplicates by URL client-side, keeping the highest score. A better model: keep one copy per article but tag all companies it covers, so it appears once in "All" but shows up when filtering by either company.
+- **Canonical URL normalization** — strip tracking params (`?utm_source=...`) before URL comparison so the same article with different query strings doesn't slip through as two entries.
+
+---
+
 ## ENH-005: Easy manual article intake
 
 Streamline adding articles manually to the Pulse sheet so all required fields are filled correctly without looking up the data dictionary. Options:
