@@ -10,6 +10,7 @@ var CONFIG = {
   SLEEP_MS:          1500,
   MIN_SCORE:         50,   // Articles 50-59 stored but not displayed (pulse.html filters to ≥60)
   MAX_AGE_DAYS:      365,
+  BATCH_SIZE:        25,   // Companies processed per trigger run
   WEIGHTS: {
     NAME_IN_TITLE:     50,
     NAME_IN_SNIPPET:   25,
@@ -24,7 +25,6 @@ var CONFIG = {
 };
 
 // CLT publications — articles from these sources get CLT_SOURCE score bonus
-// Also used to build the targeted CLT site: search query (query3 in runPulseFetch)
 var CLT_SOURCES = [
   'charlotteobserver.com',
   'bizjournals.com',
@@ -41,7 +41,17 @@ var CLT_SOURCES = [
   'builtincharlotte.com'
 ];
 
-// Stopwords stripped from category + description during context keyword extraction
+// Hard requirement: article must have a Charlotte signal OR one of these business signals.
+// Prevents generic company names (e.g. "Passport", "Path") from matching unrelated articles.
+var BUSINESS_SIGNALS = [
+  'startup', 'raises', 'raised', 'funding', 'funded', 'venture', 'investor', 'investors',
+  'seed round', 'series a', 'series b', 'series c', 'pre-seed', 'preseed', 'ipo',
+  'acquisition', 'acquires', 'acquired', 'merger', 'merges', 'partnership', 'launches',
+  'launched', 'launch', 'founder', 'co-founder', 'ceo', 'revenue', 'expands', 'expansion',
+  'hiring', 'valuation', 'capital', 'backed', 'accelerator', 'incubator', 'techstars',
+  'y combinator', 'vc-backed', 'angel investor', 'bootstrapped', 'exit', 'acqui-hire'
+];
+
 var STOPWORDS = [
   'the','a','an','and','or','but','in','on','at','to','for','of','with','by','from',
   'is','are','was','were','be','been','have','has','had','do','does','did','will',
@@ -50,7 +60,6 @@ var STOPWORDS = [
   'why','all','any','each','every','both','few','more','most','other','some','such',
   'not','only','own','same','so','than','too','very','just','about','into','never',
   'sleep','always','across','built','driven','focused','based','led','powered',
-  // Generic business terms that don't disambiguate
   'help','helps','helping','platform','software','solution','solutions','company',
   'startup','tech','technology','inc','llc','corp','co','app','tool','tools',
   'service','services','product','products','team','teams','work','works','make',
@@ -81,10 +90,34 @@ function extractContextKeywords(category, description, companyName) {
   return keywords;
 }
 
+// ── Charlotte OR business signal check ───────────────────────────────────────
+// Every article must pass this — prevents generic names from matching off-topic coverage.
+function hasLocationOrBusinessSignal(article, companyDomain) {
+  var titleLow   = article.title.toLowerCase();
+  var snippetLow = article.snippet.toLowerCase();
+  var urlLow     = article.url.toLowerCase();
+  var sourceLow  = (article.sourceUrl || '').toLowerCase();
+  var haystack   = titleLow + ' ' + snippetLow;
+
+  // Charlotte signal: mention of Charlotte/CLT or article from a CLT publication
+  if (/\bcharlotte\b/.test(titleLow)   || /\bclt\b/.test(titleLow))   return true;
+  if (/\bcharlotte\b/.test(snippetLow) || /\bclt\b/.test(snippetLow)) return true;
+  var isCltSource = CLT_SOURCES.some(function(d) {
+    return sourceLow.includes(d) || urlLow.includes(d);
+  });
+  if (isCltSource) return true;
+
+  // Domain match counts as strong signal the article is actually about the company
+  if (companyDomain && urlLow.includes(companyDomain)) return true;
+
+  // Business/startup signal
+  return BUSINESS_SIGNALS.some(function(kw) { return haystack.includes(kw); });
+}
+
+// ── Main fetch — batched ──────────────────────────────────────────────────────
 function runPulseFetch() {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-
+    var ss          = SpreadsheetApp.getActiveSpreadsheet();
     var sourceSheet = ss.getSheetByName(CONFIG.SOURCE_SHEET_NAME);
     var pulseSheet  = ensurePulseSheet(ss);
 
@@ -94,33 +127,37 @@ function runPulseFetch() {
     }
 
     var companies    = getApprovedCompanies(sourceSheet);
+    var props        = PropertiesService.getScriptProperties();
+    var startIdx     = parseInt(props.getProperty('pulseLastIdx') || '0');
+
+    // Guard against stale index if company list shrank
+    if (startIdx >= companies.length) startIdx = 0;
+
+    var endIdx   = Math.min(startIdx + CONFIG.BATCH_SIZE, companies.length);
+    var batch    = companies.slice(startIdx, endIdx);
+    var isLastBatch = endIdx >= companies.length;
+
+    Logger.log('Batch ' + startIdx + '–' + (endIdx - 1) + ' of ' + companies.length + ' companies.');
+
     var existingUrls = getExistingUrls(pulseSheet);
     var newRows      = [];
 
-    Logger.log('Processing ' + companies.length + ' approved companies...');
-
-    companies.forEach(function(company) {
-      // Query 1: pulse_query override if set, otherwise just the company name
+    batch.forEach(function(company) {
       var query1 = company.pulseQuery || ('"' + company.name + '"');
-      // Query 2: always run a Charlotte-specific query to catch local CLT coverage
       var query2 = '"' + company.name + '" Charlotte';
 
-      var nameRegex       = new RegExp('\\b' + escapeRegex(company.name.toLowerCase()) + '\\b');
-      var companySeenUrls = {}; // dedup across all queries/sources for this company
-
-      Logger.log(company.name + ' — context keywords: [' + company.contextKeywords.join(', ') + ']');
-
-      // Query 3: Google News scoped to CLT publications only — built from CLT_SOURCES
       var siteClause = CLT_SOURCES.map(function(d) { return 'site:' + d; }).join(' OR ');
       var query3 = '"' + company.name + '" (' + siteClause + ')';
 
-      // Google News: broad + Charlotte-specific + CLT publications targeted
-      // Bing News: broad query only (catches press releases Google misses)
+      var nameRegex       = new RegExp('\\b' + escapeRegex(company.name.toLowerCase()) + '\\b');
+      var companySeenUrls = {};
+
+      Logger.log(company.name + ' — context keywords: [' + company.contextKeywords.join(', ') + ']');
+
       var sources = [
         { fn: fetchGoogleNewsRSS, query: query1 },
         { fn: fetchGoogleNewsRSS, query: query2 },
-        { fn: fetchGoogleNewsRSS, query: query3 },
-        { fn: fetchBingNewsRSS,   query: query1 }
+        { fn: fetchGoogleNewsRSS, query: query3 }
       ];
 
       sources.forEach(function(source) {
@@ -133,12 +170,14 @@ function runPulseFetch() {
           var score = scoreArticle(article, company.name, company.domain);
           if (score < CONFIG.MIN_SCORE) return;
 
-          // Hard requirement: company name must appear in title or snippet
+          // Hard: company name must appear in title or snippet
           if (!nameRegex.test(article.title.toLowerCase()) && !nameRegex.test(article.snippet.toLowerCase())) return;
 
-          // Hard requirement: context keyword match — only enforced for ambiguous companies
-          // (those with pulse_query set). All others rely on score + name matching alone.
-          if (company.pulseQuery && company.contextKeywords.length > 0) {
+          // Hard: Charlotte signal OR business/startup signal
+          if (!hasLocationOrBusinessSignal(article, company.domain)) return;
+
+          // Context keyword filter — applied to all companies that have keywords
+          if (company.contextKeywords.length > 0) {
             var haystack = article.title.toLowerCase() + ' ' + article.snippet.toLowerCase();
             var hasContext = company.contextKeywords.some(function(kw) {
               return haystack.includes(kw);
@@ -159,18 +198,26 @@ function runPulseFetch() {
             new Date().toISOString()
           ]);
         });
-      }); // end sources
-    }); // end companies
+      });
+    });
 
     if (newRows.length > 0) {
       var lastRow = Math.max(pulseSheet.getLastRow(), 1);
       pulseSheet.getRange(lastRow + 1, 1, newRows.length, NUM_COLS).setValues(newRows);
       Logger.log('Stored ' + newRows.length + ' new articles.');
     } else {
-      Logger.log('No new articles found this run.');
+      Logger.log('No new articles found this batch.');
     }
 
-    purgeOldArticles(pulseSheet);
+    // Advance or reset checkpoint
+    if (isLastBatch) {
+      props.setProperty('pulseLastIdx', '0');
+      Logger.log('Full cycle complete — checkpoint reset.');
+      purgeOldArticles(pulseSheet);
+    } else {
+      props.setProperty('pulseLastIdx', endIdx.toString());
+      Logger.log('Checkpoint saved at index ' + endIdx + '.');
+    }
 
   } catch(e) {
     Logger.log('FATAL ERROR in runPulseFetch: ' + e);
@@ -218,7 +265,6 @@ function getApprovedCompanies(sheet) {
     var pulseQuery = pulseQueryIdx !== -1 && row[pulseQueryIdx]
       ? row[pulseQueryIdx].toString().trim() : '';
 
-    // Build context keywords: manual pulse_keywords override takes priority
     var contextKeywords = [];
     var pulseKeywordsRaw = pulseKeywordsIdx !== -1 && row[pulseKeywordsIdx]
       ? row[pulseKeywordsIdx].toString().trim() : '';
@@ -249,21 +295,6 @@ function fetchGoogleNewsRSS(query) {
     return parseRSSFeed(response.getContentText());
   } catch(e) {
     Logger.log('Fetch error (Google) for "' + query + '": ' + e);
-    return [];
-  }
-}
-
-function fetchBingNewsRSS(query) {
-  var url = 'https://www.bing.com/news/search?q=' + encodeURIComponent(query) + '&format=rss';
-  try {
-    var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-    if (response.getResponseCode() !== 200) {
-      Logger.log('Non-200 for Bing query: ' + query);
-      return [];
-    }
-    return parseRSSFeed(response.getContentText());
-  } catch(e) {
-    Logger.log('Fetch error (Bing) for "' + query + '": ' + e);
     return [];
   }
 }
@@ -407,7 +438,6 @@ function purgeOldArticles(pulseSheet) {
   var lastRow = pulseSheet.getLastRow();
   if (lastRow < 2) return;
 
-  // Find source_type column dynamically — manual rows are never purged
   var headers       = pulseSheet.getRange(1, 1, 1, pulseSheet.getLastColumn()).getValues()[0];
   var sourceTypeCol = -1;
   for (var h = 0; h < headers.length; h++) {
@@ -431,14 +461,85 @@ function purgeOldArticles(pulseSheet) {
   if (toDelete.length > 0) Logger.log('Purged ' + toDelete.length + ' old articles.');
 }
 
+// ── One-time cleanup — run once against existing Pulse sheet data ─────────────
+// Applies the Charlotte/business signal filter to every stored row and deletes
+// anything that wouldn't pass today. Skips manual and already-excluded rows.
+// Snippet is not stored in the sheet, so signal check runs on title + URL only.
+function cleanExistingPulse() {
+  var ss         = SpreadsheetApp.getActiveSpreadsheet();
+  var pulseSheet = ss.getSheetByName(CONFIG.PULSE_SHEET_NAME);
+  if (!pulseSheet) { Logger.log('Pulse sheet not found.'); return; }
+
+  var lastRow = pulseSheet.getLastRow();
+  if (lastRow < 2) { Logger.log('No data rows to clean.'); return; }
+
+  var headers = pulseSheet.getRange(1, 1, 1, pulseSheet.getLastColumn()).getValues()[0]
+    .map(function(h) { return h.toString().toLowerCase().trim(); });
+
+  function colIdx(name) { var i = headers.indexOf(name); return i === -1 ? -1 : i + 1; }
+  var titleCol      = colIdx('title');
+  var urlCol        = colIdx('url');
+  var sourceUrlCol  = colIdx('source_url');
+  var excludeCol    = colIdx('exclude');
+  var sourceTypeCol = colIdx('source_type');
+
+  if (titleCol === -1 || urlCol === -1) {
+    Logger.log('ERROR: Required columns (title, url) not found.');
+    return;
+  }
+
+  var numDataRows = lastRow - 1;
+  var allData = pulseSheet.getRange(2, 1, numDataRows, pulseSheet.getLastColumn()).getValues();
+  var toDelete = [];
+  var kept = 0;
+
+  // Iterate bottom-to-top so row numbers stay valid as we delete
+  for (var i = allData.length - 1; i >= 0; i--) {
+    var row = allData[i];
+
+    // Never touch manual entries
+    if (sourceTypeCol !== -1 && (row[sourceTypeCol - 1] || '').toString().toLowerCase().trim() === 'manual') {
+      kept++; continue;
+    }
+    // Already excluded — leave them (they're invisible in the UI anyway)
+    if (excludeCol !== -1 && (row[excludeCol - 1] || '').toString().toLowerCase().trim() === 'exclude') {
+      kept++; continue;
+    }
+
+    var article = {
+      title:     (row[titleCol - 1] || '').toString(),
+      url:       (row[urlCol - 1] || '').toString(),
+      snippet:   '',
+      sourceUrl: sourceUrlCol !== -1 ? (row[sourceUrlCol - 1] || '').toString() : ''
+    };
+
+    if (!hasLocationOrBusinessSignal(article, '')) {
+      toDelete.push(i + 2);
+    } else {
+      kept++;
+    }
+  }
+
+  toDelete.forEach(function(rowNum) { pulseSheet.deleteRow(rowNum); });
+  Logger.log('cleanExistingPulse: deleted ' + toDelete.length + ' rows, kept ' + kept + '.');
+}
+
+// ── Trigger setup — run once to install ──────────────────────────────────────
+// Runs every 20 minutes. At 25 companies/batch and ~3 queries each,
+// a full 700-company cycle completes in roughly 9-10 hours.
 function setupTrigger() {
   ScriptApp.getProjectTriggers().forEach(function(t) {
     if (t.getHandlerFunction() === 'runPulseFetch') ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger('runPulseFetch')
     .timeBased()
-    .everyDays(1)
-    .atHour(6)
+    .everyMinutes(20)
     .create();
-  Logger.log('Daily trigger installed — runPulseFetch will run at ~6 AM UTC each day.');
+  Logger.log('Trigger installed — runPulseFetch will run every 20 minutes.');
+}
+
+// ── Manual reset — run to restart the batch cycle from company 0 ─────────────
+function resetBatchCheckpoint() {
+  PropertiesService.getScriptProperties().setProperty('pulseLastIdx', '0');
+  Logger.log('Batch checkpoint reset to 0.');
 }
