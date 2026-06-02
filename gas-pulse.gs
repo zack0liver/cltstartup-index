@@ -551,7 +551,7 @@ function setupTrigger() {
   });
   ScriptApp.newTrigger('runPulseFetch')
     .timeBased()
-    .everyMinutes(20)
+    .everyMinutes(15)
     .create();
   Logger.log('Trigger installed — runPulseFetch will run every 20 minutes.');
 }
