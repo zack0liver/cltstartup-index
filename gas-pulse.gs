@@ -553,7 +553,7 @@ function setupTrigger() {
     .timeBased()
     .everyMinutes(15)
     .create();
-  Logger.log('Trigger installed — runPulseFetch will run every 20 minutes.');
+  Logger.log('Trigger installed — runPulseFetch will run every 15 minutes.');
 }
 
 // ── Manual reset — run to restart the batch cycle from company 0 ─────────────
