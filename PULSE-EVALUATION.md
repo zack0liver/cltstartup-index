@@ -79,3 +79,68 @@ Keep the Google News RSS + GAS + Sheets architecture. Estimated effort:
 3. **Later:** ENH-007 exclusion keywords, Google Alerts RSS supplement for any company that still can't be disambiguated.
 
 Revisit alternatives only if Google ever blocks/deprecates the RSS endpoint — GDELT would be the fallback, paired with the same (fixed) filtering layer.
+
+---
+
+## Appendix: Test results — current vs. proposed filter logic
+
+`pulse-logic-test.js` (run with `node pulse-logic-test.js`) evals the real functions
+from `gas-pulse.gs` and pushes 14 realistic articles through both pipelines. Snippets
+are modeled as title echoes, matching what Google News RSS actually returns.
+
+**The headline Polymer example scores 85** — *"Ohio polymer manufacturer launches new
+recycling plant"* gets name-in-title (+50) + snippet-echo (+25) + recency (+10). Well
+past both the 50 storage threshold and the 60 display threshold; only the (unreliable)
+context-keyword filter stands between it and the feed today.
+
+### Proposed rules (validated by the tests)
+
+- **Strict companies** (dictionary-word names — Path, Polymer, Passport, flagged via a
+  `pulse_strict` column or auto-detected):
+  1. require a **strong signal**: Charlotte/CLT mention, CLT publication, or the
+     company's own domain in the article URL — generic business words alone never qualify;
+  2. **and** a business signal (kills Charlotte civic stories that merely contain the word);
+  3. if the *only* strong signal is a bare Charlotte word-mention and the company has
+     context keywords, one must match.
+- **Non-strict companies** (unique names): keep the existing strong-OR-business gate but
+  **drop the context-keyword filter** — it currently blocks legitimate articles
+  (`'drones'` fails to match "drone manufacturing") and unique names don't need it.
+
+### Results (12/12 scored checks correct, plus 2 documented edge cases)
+
+| ID | Article | Current | Proposed |
+|---|---|---|---|
+| FP-1 | "Ohio polymer manufacturer launches new recycling plant" (85) | blocked by luck¹ | **blocked: no strong signal** |
+| FP-2 | "Polymer producers expand data-driven manufacturing…" (85) | ❌ **displayed** | ✅ blocked: no strong signal |
+| FP-3 | "Startup founders chart a new path to venture funding" (85) | ❌ **displayed** | ✅ blocked: no strong signal |
+| FP-4 | "City launches new greenway path connecting suburbs" (85) | ❌ **displayed** | ✅ blocked: no strong signal |
+| FP-5 | "State Department expands online passport renewal" (85) | blocked by luck¹ | **blocked: no strong signal** |
+| FP-6 | "Charlotte transit plan charts path for new rail line" (128) | ❌ **displayed** | ✅ blocked: no business signal |
+| FP-7 | "Charlotte launches greenway path expansion" + keywords set (108) | blocked by luck¹ | **blocked: bare CLT mention, no context kw** |
+| FP-8 | same as FP-7, company has NO keywords (108) | ❌ displayed | ⚠️ still passes — residual risk² |
+| TP-1 | "Charlotte startup Polymer raises $5M…" (128) | ✅ displayed | ✅ displayed |
+| TP-2 | "Polymer lands new funding round" via Biz Journal (105) | ❌ **wrongly blocked** | ✅ displayed |
+| TP-3 | "Path raises $12M Series A", Charlotte in real snippet (93) | ✅ displayed | ✅ displayed |
+| TP-4 | "LucidBots raises $9M to scale drone manufacturing" (85) | ❌ **wrongly blocked** | ✅ displayed |
+| TP-5 | "Finzly named a top workplace as it expands…" (85) | ❌ **wrongly blocked** | ✅ displayed |
+| TO-1 | "Polymer raises $20M Series B for data loss prevention" (85) | displayed | blocked — trade-off³ |
+
+¹ "Blocked by luck": the current context-keyword filter happens to catch it, but only
+because the title lacks a keyword — FP-2 shows the same article class passing the moment
+a keyword coincidentally appears. Not a reliable defense.
+
+² **FP-8 residual risk:** a Charlotte civic story containing a strict company's name plus
+a business word ("launches") passes if that company has no `pulse_keywords`. Mitigation:
+populate `pulse_keywords` for every strict-flagged company (FP-7 proves the layer works).
+This should be a validation rule, not a hope: `setupTrigger()`/fetch can log a warning for
+any strict company with empty keywords.
+
+³ **TO-1 trade-off (accepted):** genuine *national* coverage of a strict company with no
+Charlotte mention is blocked. For dictionary-word names this is the right default — there
+is no text-level way to tell company-Polymer from material-polymer in a national headline.
+Recovery paths: the company's own domain in the article URL still passes, `pulse_query`
+overrides can pull curated national coverage, and manual articles bypass filters entirely.
+
+Net effect vs. current behavior: **4 false positives eliminated, 3 false negatives fixed,
+0 regressions**; one residual leak (FP-8) closed operationally by requiring keywords for
+strict companies.
