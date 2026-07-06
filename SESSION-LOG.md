@@ -142,3 +142,40 @@
 
 ### Enhancements Logged
 - None
+
+---
+
+## Session 4 — 2026-07-06
+
+### Changes Made
+
+**Pulse evaluation (PULSE-EVALUATION.md, new):**
+- Diagnosed the dead schedule: old `setupTrigger()` deleted existing triggers *before* creating the new one, and `.everyMinutes(20)` throws (GAS accepts only 1/5/10/15/30) — so running it left ZERO triggers. The 15-min fix in the repo was never re-pasted into the GAS editor.
+- Diagnosed false positives: the business-signal OR-gate passes any business article containing a generic name ("Polymer producers expand…" scored 85); word-boundary regex can't disambiguate dictionary words; Google News RSS snippets are title echoes, inflating every score +25 and starving the context-keyword filter of text.
+- Compared free alternatives (NewsAPI, NewsData, GDELT, Bing, Google Alerts) — none fit ~700 companies or fix name ambiguity. Verdict: keep Google News RSS, fix the filters.
+
+**Pulse fetcher — tiered relevance gates (gas-pulse.gs):**
+- New `passesRelevanceGates()` replaces `hasLocationOrBusinessSignal` + context filter in `runPulseFetch` (`hasLocationOrBusinessSignal` retained for `cleanExistingPulse`)
+- Non-strict companies (distinctive names): strong-or-business signal, context-keyword filter REMOVED (was wrongly blocking e.g. "LucidBots raises $9M to scale drone manufacturing" — `'drones'` ≠ "drone")
+- Strict companies (generic names, via new `pulse_strict` column or `CONFIG.GENERIC_NAMES` fallback): require strong signal (Charlotte/CLT-source/domain) AND business signal; bare Charlotte mention also needs a context keyword
+- National-press escape hatches for strict companies: `pulse_aliases` column (e.g. `FastBreak.ai` — distinctive alias match passes on business signal alone) and phrase keywords (multi-word `pulse_keywords` like `data loss prevention` + business signal)
+- Scoring: `NAME_IN_SNIPPET` skipped when snippet contains the title (Google News echo)
+- `setupTrigger()`: create-before-delete so a throw can never strand zero triggers
+- `runPulseFetch()`: heartbeat script properties (`pulseLastRun`, `pulseLastAdded`), errors written to `pulseLastError` and RE-THROWN so GAS failure emails fire (old catch swallowed everything)
+- WARNING logged for strict companies with no aliases/keywords (residual FP risk)
+
+**Test harness (pulse-logic-test.js, new):**
+- Evals the actual gas-pulse.gs functions, runs 17 checks (9 FP, 7 TP, 1 scoring) old-vs-new: 5 FPs eliminated, 3 FNs fixed, 0 regressions — `node pulse-logic-test.js`
+
+### Pending — deploy steps (GAS is the runtime, not the repo)
+1. Add `pulse_strict` + `pulse_aliases` columns to Live Startups; populate keywords/aliases for Path, Polymer, Passport, FastBreak
+2. Paste updated gas-pulse.gs into sheet-bound GAS editor (incognito)
+3. Run `setupTrigger()` once; confirm 15-min trigger in Triggers panel
+4. Run `runPulseFetch()` manually; check Executions + `pulseLastRun`/`pulseLastError` properties
+
+### Bugs Found
+- Dead trigger root cause (delete-then-crash in old setupTrigger) — fixed in code, needs redeploy
+- Context-keyword filter was silently blocking legitimate articles for unique-name companies — fixed
+
+### Enhancements Logged
+- None new (ENH-007's per-company blocklist remains a good follow-up)

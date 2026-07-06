@@ -11,6 +11,11 @@ var CONFIG = {
   MIN_SCORE:         50,   // Articles 50-59 stored but not displayed (pulse.html filters to ≥60)
   MAX_AGE_DAYS:      365,
   BATCH_SIZE:        25,   // Companies processed per trigger run
+  // Company names that are common words — auto-flagged strict unless the
+  // pulse_strict sheet column says otherwise. Strict companies need a
+  // Charlotte/CLT-source/domain signal, a distinctive alias, or a phrase
+  // keyword to match; generic business words alone are never enough.
+  GENERIC_NAMES:     ['path', 'polymer', 'passport', 'fastbreak'],
   WEIGHTS: {
     NAME_IN_TITLE:     50,
     NAME_IN_SNIPPET:   25,
@@ -91,7 +96,8 @@ function extractContextKeywords(category, description, companyName) {
 }
 
 // ── Charlotte OR business signal check ───────────────────────────────────────
-// Every article must pass this — prevents generic names from matching off-topic coverage.
+// Used by cleanExistingPulse (no per-company context available there).
+// runPulseFetch uses the stricter passesRelevanceGates below.
 function hasLocationOrBusinessSignal(article, companyDomain) {
   var titleLow   = article.title.toLowerCase();
   var snippetLow = article.snippet.toLowerCase();
@@ -112,6 +118,56 @@ function hasLocationOrBusinessSignal(article, companyDomain) {
 
   // Business/startup signal
   return BUSINESS_SIGNALS.some(function(kw) { return haystack.includes(kw); });
+}
+
+// ── Tiered relevance gates ────────────────────────────────────────────────────
+// Non-strict companies (distinctive names): strong signal OR business signal.
+// National press passes on business words alone — no Charlotte required.
+//
+// Strict companies (generic dictionary-word names): a business word alone
+// proves the article is business news, not that it's about THIS company.
+// Pass requires ANY of:
+//   1. strong signal (Charlotte/CLT mention, CLT publication, own domain in
+//      URL) AND a business signal — a bare Charlotte word-mention additionally
+//      needs a context-keyword match when the company has keywords;
+//   2. a distinctive alias (pulse_aliases, e.g. "FastBreak.ai") in the text
+//      AND strong-or-business signal — alias makes the name unambiguous;
+//   3. a phrase keyword (multi-word pulse_keywords entry, e.g. "data loss
+//      prevention") in the text AND a business signal — lets genuine national
+//      coverage through. Single-word keywords never unlock national coverage:
+//      they collide with the same generic vocabulary that causes the FPs.
+function passesRelevanceGates(article, company) {
+  var t    = article.title.toLowerCase();
+  var s    = article.snippet.toLowerCase();
+  var u    = article.url.toLowerCase();
+  var srcU = (article.sourceUrl || '').toLowerCase();
+  var hay  = t + ' ' + s;
+
+  var cltMention = /\bcharlotte\b|\bclt\b/.test(hay);
+  var cltSource  = CLT_SOURCES.some(function(d) { return srcU.includes(d) || u.includes(d); });
+  var domainHit  = !!(company.domain && u.includes(company.domain));
+  var strong     = cltMention || cltSource || domainHit;
+  var business   = BUSINESS_SIGNALS.some(function(kw) { return hay.includes(kw); });
+
+  if (!company.strict) return strong || business;
+
+  // Gate 2 — distinctive alias
+  var aliasHit = company.aliases.some(function(a) {
+    return new RegExp('\\b' + escapeRegex(a) + '\\b').test(hay);
+  });
+  if (aliasHit && (strong || business)) return true;
+
+  // Gate 3 — phrase keyword + business signal (national coverage)
+  var phraseHit = company.phraseKeywords.some(function(p) { return hay.includes(p); });
+  if (phraseHit && business) return true;
+
+  // Gate 1 — strong + business
+  if (!strong || !business) return false;
+  if (cltMention && !cltSource && !domainHit) {
+    var kws = company.phraseKeywords.concat(company.wordKeywords);
+    if (kws.length > 0 && !kws.some(function(kw) { return hay.includes(kw); })) return false;
+  }
+  return true;
 }
 
 // ── Main fetch — batched ──────────────────────────────────────────────────────
@@ -152,7 +208,13 @@ function runPulseFetch() {
       var nameRegex       = new RegExp('\\b' + escapeRegex(company.name.toLowerCase()) + '\\b');
       var companySeenUrls = {};
 
-      Logger.log(company.name + ' — context keywords: [' + company.contextKeywords.join(', ') + ']');
+      Logger.log(company.name + (company.strict ? ' [STRICT]' : '')
+        + ' — aliases: [' + company.aliases.join(', ')
+        + '], keywords: [' + company.phraseKeywords.concat(company.wordKeywords).join(', ') + ']');
+      if (company.strict && company.aliases.length === 0 && company.phraseKeywords.length === 0 && company.wordKeywords.length === 0) {
+        Logger.log('WARNING: strict company "' + company.name + '" has no pulse_aliases or pulse_keywords — '
+          + 'national coverage will be skipped and bare-Charlotte matches are unfiltered.');
+      }
 
       var sources = [
         { fn: fetchGoogleNewsRSS, query: query1 },
@@ -173,17 +235,8 @@ function runPulseFetch() {
           // Hard: company name must appear in title or snippet
           if (!nameRegex.test(article.title.toLowerCase()) && !nameRegex.test(article.snippet.toLowerCase())) return;
 
-          // Hard: Charlotte signal OR business/startup signal
-          if (!hasLocationOrBusinessSignal(article, company.domain)) return;
-
-          // Context keyword filter — applied to all companies that have keywords
-          if (company.contextKeywords.length > 0) {
-            var haystack = article.title.toLowerCase() + ' ' + article.snippet.toLowerCase();
-            var hasContext = company.contextKeywords.some(function(kw) {
-              return haystack.includes(kw);
-            });
-            if (!hasContext) return;
-          }
+          // Hard: tiered relevance gates — strict names need Charlotte/alias/phrase-keyword proof
+          if (!passesRelevanceGates(article, company)) return;
 
           existingUrls[article.url]    = true;
           companySeenUrls[article.url] = true;
@@ -219,8 +272,16 @@ function runPulseFetch() {
       Logger.log('Checkpoint saved at index ' + endIdx + '.');
     }
 
+    // Heartbeat — check these in Project Settings → Script Properties to see run health
+    props.setProperty('pulseLastRun', new Date().toISOString());
+    props.setProperty('pulseLastAdded', String(newRows.length));
+
   } catch(e) {
-    Logger.log('FATAL ERROR in runPulseFetch: ' + e);
+    PropertiesService.getScriptProperties()
+      .setProperty('pulseLastError', new Date().toISOString() + ' — ' + e);
+    // Re-throw so GAS marks the execution failed and sends trigger-failure emails.
+    // Swallowing here previously made every failure invisible.
+    throw e;
   }
 }
 
@@ -237,6 +298,8 @@ function getApprovedCompanies(sheet) {
   var descriptionIdx   = headers.indexOf('description');
   var pulseQueryIdx    = headers.indexOf('pulse_query');
   var pulseKeywordsIdx = headers.indexOf('pulse_keywords');
+  var pulseStrictIdx   = headers.indexOf('pulse_strict');
+  var pulseAliasesIdx  = headers.indexOf('pulse_aliases');
 
   if (titleIdx === -1 || statusIdx === -1) {
     Logger.log('ERROR: Required columns (title, status) not found in source sheet.');
@@ -278,7 +341,31 @@ function getApprovedCompanies(sheet) {
       contextKeywords = extractContextKeywords(category, description, name);
     }
 
-    companies.push({ name: name, domain: domain, pulseQuery: pulseQuery, contextKeywords: contextKeywords });
+    // Phrase keywords (contain a space, e.g. "data loss prevention") can unlock
+    // national coverage for strict companies; single words cannot — too collision-prone.
+    var phraseKeywords = contextKeywords.filter(function(k) { return k.indexOf(' ') !== -1; });
+    var wordKeywords   = contextKeywords.filter(function(k) { return k.indexOf(' ') === -1; });
+
+    // strict: explicit pulse_strict column wins; empty cell falls back to GENERIC_NAMES
+    var strict;
+    var strictRaw = pulseStrictIdx !== -1 && row[pulseStrictIdx] != null
+      ? row[pulseStrictIdx].toString().toLowerCase().trim() : '';
+    if (strictRaw !== '') {
+      strict = (strictRaw === 'yes' || strictRaw === 'true' || strictRaw === '1');
+    } else {
+      strict = CONFIG.GENERIC_NAMES.indexOf(name.toLowerCase()) !== -1;
+    }
+
+    var aliases = [];
+    if (pulseAliasesIdx !== -1 && row[pulseAliasesIdx]) {
+      aliases = row[pulseAliasesIdx].toString().toLowerCase().split(',')
+        .map(function(a) { return a.trim(); }).filter(Boolean);
+    }
+
+    companies.push({
+      name: name, domain: domain, pulseQuery: pulseQuery, strict: strict,
+      aliases: aliases, phraseKeywords: phraseKeywords, wordKeywords: wordKeywords
+    });
   }
 
   return companies;
@@ -388,8 +475,11 @@ function scoreArticle(article, companyName, companyDomain) {
   var sourceLow  = (article.sourceUrl || '').toLowerCase();
 
   var nameRegex = new RegExp('\\b' + escapeRegex(nameLow) + '\\b');
-  if (nameRegex.test(titleLow))   score += CONFIG.WEIGHTS.NAME_IN_TITLE;
-  if (nameRegex.test(snippetLow)) score += CONFIG.WEIGHTS.NAME_IN_SNIPPET;
+  if (nameRegex.test(titleLow)) score += CONFIG.WEIGHTS.NAME_IN_TITLE;
+  // Google News RSS usually echoes the title as the description — a snippet
+  // that contains the title adds no information, so don't double-count it.
+  var snippetIsEcho = titleLow && snippetLow.includes(titleLow);
+  if (!snippetIsEcho && nameRegex.test(snippetLow)) score += CONFIG.WEIGHTS.NAME_IN_SNIPPET;
 
   if (domainLow) {
     if (urlLow.includes(domainLow))     score += CONFIG.WEIGHTS.DOMAIN_IN_URL;
@@ -543,17 +633,20 @@ function cleanExistingPulse() {
 }
 
 // ── Trigger setup — run once to install ──────────────────────────────────────
-// Runs every 20 minutes. At 25 companies/batch and ~3 queries each,
-// a full 700-company cycle completes in roughly 9-10 hours.
+// Runs every 15 minutes. At 25 companies/batch and ~3 queries each,
+// a full 700-company cycle completes in roughly 7 hours.
 function setupTrigger() {
-  ScriptApp.getProjectTriggers().forEach(function(t) {
-    if (t.getHandlerFunction() === 'runPulseFetch') ScriptApp.deleteTrigger(t);
+  // Create BEFORE deleting old ones — the old delete-first order left ZERO
+  // triggers installed when .everyMinutes() threw on an invalid interval.
+  var existing = ScriptApp.getProjectTriggers().filter(function(t) {
+    return t.getHandlerFunction() === 'runPulseFetch';
   });
   ScriptApp.newTrigger('runPulseFetch')
     .timeBased()
-    .everyMinutes(15)
+    .everyMinutes(15)   // GAS only accepts 1/5/10/15/30
     .create();
-  Logger.log('Trigger installed — runPulseFetch will run every 20 minutes.');
+  existing.forEach(function(t) { ScriptApp.deleteTrigger(t); });
+  Logger.log('Trigger installed — runPulseFetch will run every 15 minutes.');
 }
 
 // ── Manual reset — run to restart the batch cycle from company 0 ─────────────

@@ -1,92 +1,67 @@
-// Test harness: runs articles through gas-pulse.gs scoring + filter pipeline,
-// comparing CURRENT logic vs PROPOSED strict-gate logic.
-// Run with: node pulse-logic-test.js   (no dependencies — evals gas-pulse.gs directly)
+// Test harness: runs articles through the ACTUAL gas-pulse.gs scoring + filter
+// functions (loaded via eval), comparing the OLD pipeline (pre-strict-gate,
+// reconstructed here) against the CURRENT tiered logic in passesRelevanceGates.
+// Run with: node pulse-logic-test.js   (no dependencies)
 const fs = require('fs');
 const src = fs.readFileSync(__dirname + '/gas-pulse.gs', 'utf8');
-eval(src); // defines CONFIG, CLT_SOURCES, BUSINESS_SIGNALS, scoreArticle, hasLocationOrBusinessSignal, escapeRegex, etc.
+eval(src); // defines CONFIG, CLT_SOURCES, BUSINESS_SIGNALS, scoreArticle, passesRelevanceGates, hasLocationOrBusinessSignal, escapeRegex
 
 const DAY = 86400000;
 const recent = new Date(Date.now() - 30 * DAY); // 1 month old -> +10 recency
 
-// ── Strong signal = Charlotte mention OR CLT publication OR company's own domain in URL
-function hasStrongSignal(article, companyDomain) {
-  const t = article.title.toLowerCase(), s = article.snippet.toLowerCase();
-  const u = article.url.toLowerCase(), src = (article.sourceUrl || '').toLowerCase();
-  if (/\bcharlotte\b/.test(t) || /\bclt\b/.test(t)) return true;
-  if (/\bcharlotte\b/.test(s) || /\bclt\b/.test(s)) return true;
-  if (CLT_SOURCES.some(d => src.includes(d) || u.includes(d))) return true;
-  if (companyDomain && u.includes(companyDomain)) return true;
-  return false;
-}
-
-// ── CURRENT pipeline (mirrors runPulseFetch gates, gas-pulse.gs:170-186)
-function currentPipeline(article, company) {
-  const score = scoreArticle(article, company.name, company.domain);
+// ── OLD pipeline (pre-change gates: business-signal OR-gate + context-keyword filter)
+function oldPipeline(article, company) {
+  // reconstruct the old snippet-echo double count
+  let score = scoreArticle(article, company.name, company.domain);
+  const nameRe = new RegExp('\\b' + escapeRegex(company.name.toLowerCase()) + '\\b');
+  if (article.title.toLowerCase() && article.snippet.toLowerCase().includes(article.title.toLowerCase())
+      && nameRe.test(article.snippet.toLowerCase())) {
+    score += CONFIG.WEIGHTS.NAME_IN_SNIPPET; // old code counted the echo
+  }
   const gates = { score };
   if (score < CONFIG.MIN_SCORE) return { pass: false, why: 'score < 50', ...gates };
-  const nameRe = new RegExp('\\b' + escapeRegex(company.name.toLowerCase()) + '\\b');
   if (!nameRe.test(article.title.toLowerCase()) && !nameRe.test(article.snippet.toLowerCase()))
     return { pass: false, why: 'name not in title/snippet', ...gates };
   if (!hasLocationOrBusinessSignal(article, company.domain))
     return { pass: false, why: 'no CLT/business signal', ...gates };
-  if (company.contextKeywords.length > 0) {
+  const kws = company.phraseKeywords.concat(company.wordKeywords);
+  if (kws.length > 0) {
     const hay = article.title.toLowerCase() + ' ' + article.snippet.toLowerCase();
-    if (!company.contextKeywords.some(kw => hay.includes(kw)))
+    if (!kws.some(kw => hay.includes(kw)))
       return { pass: false, why: 'no context keyword', ...gates };
   }
   return { pass: true, why: score >= 60 ? 'stored + DISPLAYED (≥60)' : 'stored only (50-59)', ...gates };
 }
 
-// ── PROPOSED v2 pipeline
-//  Strict companies (generic dictionary-word names):
-//    1. require strong signal (Charlotte mention / CLT publication / own domain)
-//    2. AND require a business signal (kills "Charlotte transit plan charts path...")
-//    3. if the ONLY strong signal is a bare Charlotte word-mention (not a CLT
-//       publication or the company's own domain) and the company has context
-//       keywords, one must match (kills "Charlotte launches greenway path expansion")
-//  Non-strict companies (unique names):
-//    keep current strong-OR-business gate, DROP the context-keyword filter —
-//    it's causing false negatives today ('drones' vs "drone manufacturing")
-//    and unique names don't need disambiguation.
-function proposedPipeline(article, company) {
+// ── NEW pipeline — exactly what runPulseFetch now does, calling the real functions
+function newPipeline(article, company) {
   const score = scoreArticle(article, company.name, company.domain);
   const gates = { score };
   if (score < CONFIG.MIN_SCORE) return { pass: false, why: 'score < 50', ...gates };
   const nameRe = new RegExp('\\b' + escapeRegex(company.name.toLowerCase()) + '\\b');
   if (!nameRe.test(article.title.toLowerCase()) && !nameRe.test(article.snippet.toLowerCase()))
     return { pass: false, why: 'name not in title/snippet', ...gates };
-
-  const t = article.title.toLowerCase(), s = article.snippet.toLowerCase();
-  const u = article.url.toLowerCase(), srcU = (article.sourceUrl || '').toLowerCase();
-  const cltMention = /\bcharlotte\b|\bclt\b/.test(t) || /\bcharlotte\b|\bclt\b/.test(s);
-  const cltSource  = CLT_SOURCES.some(d => srcU.includes(d) || u.includes(d));
-  const domainHit  = !!(company.domain && u.includes(company.domain));
-  const strong     = cltMention || cltSource || domainHit;
-  const business   = BUSINESS_SIGNALS.some(kw => (t + ' ' + s).includes(kw));
-
-  if (company.strict) {
-    if (!strong)   return { pass: false, why: 'STRICT: no Charlotte/CLT-source/domain', ...gates };
-    if (!business) return { pass: false, why: 'STRICT: no business signal', ...gates };
-    if (cltMention && !cltSource && !domainHit && company.contextKeywords.length > 0) {
-      const hay = t + ' ' + s;
-      if (!company.contextKeywords.some(kw => hay.includes(kw)))
-        return { pass: false, why: 'STRICT: bare CLT mention, no context kw', ...gates };
-    }
-  } else {
-    if (!strong && !business)
-      return { pass: false, why: 'no CLT/business signal', ...gates };
-  }
+  if (!passesRelevanceGates(article, company))
+    return { pass: false, why: company.strict ? 'strict gates failed' : 'no CLT/business signal', ...gates };
   return { pass: true, why: score >= 60 ? 'stored + DISPLAYED (≥60)' : 'stored only (50-59)', ...gates };
 }
 
-// ── Companies (context keywords as extractContextKeywords would yield from category+description)
+// ── Companies — shaped like getApprovedCompanies() output
+function co(name, domain, strict, keywords = [], aliases = []) {
+  return {
+    name, domain, strict, aliases,
+    phraseKeywords: keywords.filter(k => k.includes(' ')),
+    wordKeywords:   keywords.filter(k => !k.includes(' ')),
+  };
+}
 const companies = {
-  polymer:   { name: 'Polymer',   domain: 'polymerhq.io',   strict: true,  contextKeywords: ['data','security','privacy','compliance','saas'] },
-  path:      { name: 'Path',      domain: 'path.com',       strict: true,  contextKeywords: [] }, // no description -> no keywords (common case)
-  pathKw:    { name: 'Path',      domain: 'path.com',       strict: true,  contextKeywords: ['mental','health','therapy','insurance'] }, // pulse_keywords populated
-  passport:  { name: 'Passport',  domain: 'passportinc.com',strict: true,  contextKeywords: ['parking','mobility','payments','transportation'] },
-  lucidbots: { name: 'LucidBots', domain: 'lucidbots.com',  strict: false, contextKeywords: ['drones','cleaning','robotics','exterior'] },
-  finzly:    { name: 'Finzly',    domain: 'finzly.com',     strict: false, contextKeywords: ['banking','payments','fintech','fedwire'] },
+  polymer:   co('Polymer',   'polymerhq.io',    true,  ['data loss prevention', 'data', 'security', 'privacy', 'compliance', 'saas']),
+  path:      co('Path',      'path.com',        true,  []), // strict, nothing populated — worst case
+  pathKw:    co('Path',      'path.com',        true,  ['mental', 'health', 'therapy', 'insurance']),
+  passport:  co('Passport',  'passportinc.com', true,  ['parking', 'mobility', 'payments', 'transportation']),
+  fastbreak: co('FastBreak', 'fastbreak.ai',    true,  ['sports scheduling', 'scheduling', 'league'], ['fastbreak.ai']),
+  lucidbots: co('LucidBots', 'lucidbots.com',   false, ['drones', 'cleaning', 'robotics', 'exterior']),
+  finzly:    co('Finzly',    'finzly.com',      false, ['banking', 'payments', 'fintech', 'fedwire']),
 };
 
 // Google News RSS reality: snippet == title (echoed back). Model that unless stated.
@@ -101,7 +76,7 @@ const cases = [
     company: 'polymer', want: 'block',
     a: art('Ohio polymer manufacturer launches new recycling plant',
            'https://plasticsnews.com/ohio-polymer-plant', 'https://plasticsnews.com') },
-  { id: 'FP-2', label: 'polymer material article whose title happens to hit a context keyword',
+  { id: 'FP-2', label: 'polymer material article whose title hits a single-word context keyword',
     company: 'polymer', want: 'block',
     a: art('Polymer producers expand data-driven manufacturing to boost revenue',
            'https://industryweek.com/polymer-data', 'https://industryweek.com') },
@@ -125,13 +100,17 @@ const cases = [
     company: 'pathKw', want: 'block',
     a: art('Charlotte launches greenway path expansion in south end',
            'https://qcnews.com/greenway-path', 'https://qcnews.com') },
-  { id: 'FP-8', label: 'same as FP-7 but company has NO pulse_keywords (residual risk)',
-    company: 'path', want: 'block',
+  { id: 'FP-8', label: 'same as FP-7 but company has NO pulse_keywords (residual risk, warned in logs)',
+    company: 'path', want: 'residual',
     a: art('Charlotte launches greenway path expansion in south end',
            'https://qcnews.com/greenway-path', 'https://qcnews.com') },
+  { id: 'FP-9', label: 'basketball fast break story hitting business word + single-word keyword',
+    company: 'fastbreak', want: 'block',
+    a: art('Lakers fastbreak launches new era for league offense',
+           'https://espn.com/lakers-fastbreak', 'https://espn.com') },
 
-  // ── TRUE POSITIVES that must keep passing ──
-  { id: 'TP-1', label: 'Charlotte in title — strict company',
+  // ── TRUE POSITIVES that must pass ──
+  { id: 'TP-1', label: 'Charlotte in title — strict company, keyword corroborates',
     company: 'polymer', want: 'pass',
     a: art('Charlotte startup Polymer raises $5M to expand data security platform',
            'https://axios.com/charlotte/polymer-raise', 'https://axios.com') },
@@ -152,32 +131,42 @@ const cases = [
     company: 'finzly', want: 'pass',
     a: art('Finzly named a top workplace as it expands headcount',
            'https://americanbanker.com/finzly-workplace', 'https://americanbanker.com') },
-
-  // ── KNOWN TRADE-OFF: documented, decide policy ──
-  { id: 'TO-1', label: 'TRADE-OFF: real national coverage of strict company, no CLT mention',
-    company: 'polymer', want: 'trade-off',
+  { id: 'TP-6', label: 'NATIONAL press for strict company via distinctive alias (FastBreak.ai)',
+    company: 'fastbreak', want: 'pass',
+    a: art('FastBreak.ai raises $20M to expand sports scheduling platform',
+           'https://techcrunch.com/fastbreak-raise', 'https://techcrunch.com') },
+  { id: 'TP-7', label: 'NATIONAL press for strict company via phrase keyword (was blocked trade-off TO-1)',
+    company: 'polymer', want: 'pass',
     a: art('Polymer raises $20M Series B for data loss prevention',
            'https://techcrunch.com/polymer-series-b', 'https://techcrunch.com') },
 ];
 
+// ── Score assertion: snippet-echo no longer double-counts ──
+const echoArt = art('Ohio polymer manufacturer launches new recycling plant',
+                    'https://plasticsnews.com/x', 'https://plasticsnews.com');
+const echoScore = scoreArticle(echoArt, 'Polymer', 'polymerhq.io');
+const echoOk = echoScore === 60; // 50 name-in-title + 10 recency (no +25 echo)
+console.log(`Snippet-echo scoring: ${echoScore} (want 60, was 85) ${echoOk ? '✓' : '✗'}\n`);
+
 const pad = (s, n) => String(s).padEnd(n);
-console.log(pad('ID', 6) + pad('score', 7) + pad('CURRENT', 34) + pad('PROPOSED', 44) + 'verdict');
-console.log('-'.repeat(130));
-let ok = 0, total = 0;
+console.log(pad('ID', 6) + pad('score', 7) + pad('OLD LOGIC', 34) + pad('NEW LOGIC', 34) + 'verdict');
+console.log('-'.repeat(120));
+let ok = echoOk ? 1 : 0, total = 1;
 for (const c of cases) {
-  const co = companies[c.company];
-  const cur = currentPipeline(c.a, co);
-  const pro = proposedPipeline(c.a, co);
+  const comp = companies[c.company];
+  const old_ = oldPipeline(c.a, comp);
+  const new_ = newPipeline(c.a, comp);
   let verdict;
-  if (c.want === 'block')      verdict = !pro.pass ? (cur.pass ? 'FIXED ✓ (was FP)' : 'OK ✓ (both block)') : 'STILL LEAKS ✗';
-  else if (c.want === 'pass')  verdict = pro.pass ? (cur.pass ? 'OK ✓ (both pass)' : 'FIXED ✓ (was FN)') : 'REGRESSION ✗';
-  else                         verdict = `trade-off: ${pro.pass ? 'passes' : 'blocked'}`;
-  if (c.want !== 'trade-off') { total++; if (!verdict.includes('✗')) ok++; }
-  console.log(pad(c.id, 6) + pad(cur.score, 7)
-    + pad((cur.pass ? 'PASS  ' : 'block ') + cur.why, 34)
-    + pad((pro.pass ? 'PASS  ' : 'block ') + pro.why, 44)
+  if (c.want === 'block')      verdict = !new_.pass ? (old_.pass ? 'FIXED ✓ (was FP)' : 'OK ✓ (both block)') : 'STILL LEAKS ✗';
+  else if (c.want === 'pass')  verdict = new_.pass ? (old_.pass ? 'OK ✓ (both pass)' : 'FIXED ✓ (was FN)') : 'REGRESSION ✗';
+  else                         verdict = `residual: ${new_.pass ? 'passes (warned in logs)' : 'blocked'}`;
+  if (c.want !== 'residual') { total++; if (!verdict.includes('✗')) ok++; }
+  console.log(pad(c.id, 6) + pad(new_.score, 7)
+    + pad((old_.pass ? 'PASS  ' : 'block ') + old_.why, 34)
+    + pad((new_.pass ? 'PASS  ' : 'block ') + new_.why, 34)
     + verdict);
   console.log('       ' + c.label + '  —  "' + c.a.title + '"');
 }
-console.log('-'.repeat(130));
-console.log(`Scored checks: ${ok}/${total} correct under proposed logic`);
+console.log('-'.repeat(120));
+console.log(`Scored checks: ${ok}/${total} correct under new logic`);
+process.exit(ok === total ? 0 : 1);

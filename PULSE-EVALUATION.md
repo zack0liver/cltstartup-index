@@ -82,65 +82,87 @@ Revisit alternatives only if Google ever blocks/deprecates the RSS endpoint — 
 
 ---
 
-## Appendix: Test results — current vs. proposed filter logic
+## Appendix: Implemented filter logic + test results
 
-`pulse-logic-test.js` (run with `node pulse-logic-test.js`) evals the real functions
-from `gas-pulse.gs` and pushes 14 realistic articles through both pipelines. Snippets
-are modeled as title echoes, matching what Google News RSS actually returns.
+**Status: implemented in `gas-pulse.gs`** (`passesRelevanceGates`) and validated by
+`pulse-logic-test.js`, which evals the *actual* script functions and pushes 17 checks
+through both the old and new pipelines. Snippets are modeled as title echoes, matching
+what Google News RSS actually returns.
 
-**The headline Polymer example scores 85** — *"Ohio polymer manufacturer launches new
-recycling plant"* gets name-in-title (+50) + snippet-echo (+25) + recency (+10). Well
-past both the 50 storage threshold and the 60 display threshold; only the (unreliable)
-context-keyword filter stands between it and the feed today.
+**The headline Polymer example previously scored 85** — name-in-title (+50) +
+snippet-echo (+25) + recency (+10). The snippet-echo fix (don't count `NAME_IN_SNIPPET`
+when the snippet contains the title) brings it to 60; the strict gates now block it
+regardless of score.
 
-### Proposed rules (validated by the tests)
+### The tier model (as implemented)
 
-- **Strict companies** (dictionary-word names — Path, Polymer, Passport, flagged via a
-  `pulse_strict` column or auto-detected):
-  1. require a **strong signal**: Charlotte/CLT mention, CLT publication, or the
-     company's own domain in the article URL — generic business words alone never qualify;
-  2. **and** a business signal (kills Charlotte civic stories that merely contain the word);
-  3. if the *only* strong signal is a bare Charlotte word-mention and the company has
-     context keywords, one must match.
-- **Non-strict companies** (unique names): keep the existing strong-OR-business gate but
-  **drop the context-keyword filter** — it currently blocks legitimate articles
-  (`'drones'` fails to match "drone manufacturing") and unique names don't need it.
+**Does national press require a Charlotte signal? No — only strict-named companies ever
+needed one, and they now have two escape hatches.**
 
-### Results (12/12 scored checks correct, plus 2 documented edge cases)
+- **Non-strict companies** (distinctive names — LucidBots, Finzly, the default): strong
+  signal (Charlotte mention / CLT publication / own domain in URL) **or** business signal.
+  National coverage passes on business words alone. The context-keyword filter is
+  **removed** for these companies — it was blocking legitimate articles (`'drones'`
+  doesn't substring-match "drone manufacturing") and unique names don't need it.
+- **Strict companies** (dictionary-word names — Path, Polymer, Passport, FastBreak;
+  flagged via new `pulse_strict` sheet column, falling back to `CONFIG.GENERIC_NAMES`):
+  pass if **any** of:
+  1. **strong + business** — Charlotte/CLT-source/domain signal AND a business word;
+     a *bare* Charlotte word-mention additionally needs a context-keyword match when
+     keywords exist (blocks "Charlotte launches greenway path expansion");
+  2. **alias hatch** — a `pulse_aliases` entry (new sheet column, e.g. `FastBreak.ai`)
+     word-boundary-matches the text: the alias is unambiguous, so national press passes
+     with just a business signal (`\bfastbreak\.ai\b` matches "FastBreak.ai raises $20M…"
+     but not "Lakers fastbreak…");
+  3. **phrase-keyword hatch** — a multi-word `pulse_keywords` entry (e.g. `data loss
+     prevention`) matches AND a business signal is present. Single-word keywords never
+     unlock national coverage — FP-2 proved they collide with generic vocabulary.
 
-| ID | Article | Current | Proposed |
+### Results — 16/16 scored checks correct (`node pulse-logic-test.js`)
+
+| ID | Article (new score) | Old logic | New logic |
 |---|---|---|---|
-| FP-1 | "Ohio polymer manufacturer launches new recycling plant" (85) | blocked by luck¹ | **blocked: no strong signal** |
-| FP-2 | "Polymer producers expand data-driven manufacturing…" (85) | ❌ **displayed** | ✅ blocked: no strong signal |
-| FP-3 | "Startup founders chart a new path to venture funding" (85) | ❌ **displayed** | ✅ blocked: no strong signal |
-| FP-4 | "City launches new greenway path connecting suburbs" (85) | ❌ **displayed** | ✅ blocked: no strong signal |
-| FP-5 | "State Department expands online passport renewal" (85) | blocked by luck¹ | **blocked: no strong signal** |
-| FP-6 | "Charlotte transit plan charts path for new rail line" (128) | ❌ **displayed** | ✅ blocked: no business signal |
-| FP-7 | "Charlotte launches greenway path expansion" + keywords set (108) | blocked by luck¹ | **blocked: bare CLT mention, no context kw** |
-| FP-8 | same as FP-7, company has NO keywords (108) | ❌ displayed | ⚠️ still passes — residual risk² |
-| TP-1 | "Charlotte startup Polymer raises $5M…" (128) | ✅ displayed | ✅ displayed |
-| TP-2 | "Polymer lands new funding round" via Biz Journal (105) | ❌ **wrongly blocked** | ✅ displayed |
-| TP-3 | "Path raises $12M Series A", Charlotte in real snippet (93) | ✅ displayed | ✅ displayed |
-| TP-4 | "LucidBots raises $9M to scale drone manufacturing" (85) | ❌ **wrongly blocked** | ✅ displayed |
-| TP-5 | "Finzly named a top workplace as it expands…" (85) | ❌ **wrongly blocked** | ✅ displayed |
-| TO-1 | "Polymer raises $20M Series B for data loss prevention" (85) | displayed | blocked — trade-off³ |
+| FP-1 | "Ohio polymer manufacturer launches new recycling plant" (60) | blocked by luck¹ | ✅ blocked |
+| FP-2 | "Polymer producers expand data-driven manufacturing…" (60) | ❌ displayed | ✅ blocked |
+| FP-3 | "Startup founders chart a new path to venture funding" (60) | ❌ displayed | ✅ blocked |
+| FP-4 | "City launches new greenway path connecting suburbs" (60) | ❌ displayed | ✅ blocked |
+| FP-5 | "State Department expands online passport renewal" (60) | blocked by luck¹ | ✅ blocked |
+| FP-6 | "Charlotte transit plan charts path for new rail line" (103) | ❌ displayed | ✅ blocked |
+| FP-7 | "Charlotte launches greenway path expansion", keywords set (83) | blocked by luck¹ | ✅ blocked |
+| FP-8 | same as FP-7, NO keywords (83) | ❌ displayed | ⚠️ residual² |
+| FP-9 | "Lakers fastbreak launches new era for league offense" (60) | ❌ displayed | ✅ blocked |
+| TP-1 | "Charlotte startup Polymer raises $5M…" (103) | ✅ | ✅ |
+| TP-2 | "Polymer lands new funding round" via Biz Journal (80) | ❌ wrongly blocked | ✅ displayed |
+| TP-3 | "Path raises $12M Series A", Charlotte in real snippet (93) | ✅ | ✅ |
+| TP-4 | "LucidBots raises $9M to scale drone manufacturing" (60) | ❌ wrongly blocked | ✅ displayed |
+| TP-5 | "Finzly named a top workplace as it expands…" (60) | ❌ wrongly blocked | ✅ displayed |
+| TP-6 | **national**: "FastBreak.ai raises $20M…" via alias (70) | ✅ | ✅ displayed |
+| TP-7 | **national**: "Polymer raises $20M Series B for data loss prevention" via phrase kw (60) | ✅ | ✅ displayed |
 
-¹ "Blocked by luck": the current context-keyword filter happens to catch it, but only
-because the title lacks a keyword — FP-2 shows the same article class passing the moment
-a keyword coincidentally appears. Not a reliable defense.
+Plus a scoring assertion: the FP-1 article scores 60 (was 85) after the snippet-echo fix.
+
+¹ "Blocked by luck": the old context-keyword filter happened to catch it only because the
+title lacked a keyword — FP-2 shows the same article class passing the moment a keyword
+coincidentally appears.
 
 ² **FP-8 residual risk:** a Charlotte civic story containing a strict company's name plus
-a business word ("launches") passes if that company has no `pulse_keywords`. Mitigation:
-populate `pulse_keywords` for every strict-flagged company (FP-7 proves the layer works).
-This should be a validation rule, not a hope: `setupTrigger()`/fetch can log a warning for
-any strict company with empty keywords.
+a business word passes when that company has no `pulse_keywords`/`pulse_aliases`. The
+script now logs a WARNING for every strict company with neither populated — the fix is
+operational: fill in the columns (FP-7 proves the layer works once keywords exist).
 
-³ **TO-1 trade-off (accepted):** genuine *national* coverage of a strict company with no
-Charlotte mention is blocked. For dictionary-word names this is the right default — there
-is no text-level way to tell company-Polymer from material-polymer in a national headline.
-Recovery paths: the company's own domain in the article URL still passes, `pulse_query`
-overrides can pull curated national coverage, and manual articles bypass filters entirely.
+**Net effect: 5 false positives eliminated, 3 false negatives fixed, national coverage
+preserved for both distinctive and strict names, 0 regressions.**
 
-Net effect vs. current behavior: **4 false positives eliminated, 3 false negatives fixed,
-0 regressions**; one residual leak (FP-8) closed operationally by requiring keywords for
-strict companies.
+Side effect worth knowing: with the echo fix, national articles score exactly 60 when
+recent (≤6 months) — right at the display threshold. National articles older than 6
+months score 55: stored but not displayed. Arguably correct for a "pulse" feed; raise
+`WITHIN_1_YEAR` if year-old national coverage should display.
+
+### Deployment checklist (GAS is the runtime, not this repo)
+
+1. Add sheet columns to Live Startups: `pulse_strict`, `pulse_aliases` (and populate
+   `pulse_keywords` — phrases preferred — for Path, Polymer, Passport, FastBreak).
+2. Paste updated `gas-pulse.gs` into the sheet-bound Apps Script editor (incognito).
+3. Run `setupTrigger()` once; confirm the 15-minute trigger in the Triggers panel.
+4. Run `runPulseFetch()` once manually; check Executions + the new
+   `pulseLastRun`/`pulseLastError` script properties.
