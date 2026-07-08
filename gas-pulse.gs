@@ -3,6 +3,11 @@
 // Google Apps Script
 // ============================================================
 
+// Bump this whenever the script changes. Logged on every runPulseFetch and
+// readable via checkDeployedVersion() — so "which copy is live in the GAS
+// editor?" is answerable in one glance instead of searching for functions.
+var PULSE_VERSION = '2026-07-07-tiered';
+
 var CONFIG = {
   SPREADSHEET_ID:    'YOUR_SPREADSHEET_ID_HERE',
   SOURCE_SHEET_NAME: 'Live Startups',
@@ -173,6 +178,7 @@ function passesRelevanceGates(article, company) {
 // ── Main fetch — batched ──────────────────────────────────────────────────────
 function runPulseFetch() {
   try {
+    Logger.log('runPulseFetch — script version ' + PULSE_VERSION);
     var ss          = SpreadsheetApp.getActiveSpreadsheet();
     var sourceSheet = ss.getSheetByName(CONFIG.SOURCE_SHEET_NAME);
     var pulseSheet  = ensurePulseSheet(ss);
@@ -275,6 +281,7 @@ function runPulseFetch() {
     // Heartbeat — check these in Project Settings → Script Properties to see run health
     props.setProperty('pulseLastRun', new Date().toISOString());
     props.setProperty('pulseLastAdded', String(newRows.length));
+    props.setProperty('pulseVersion', PULSE_VERSION);
 
   } catch(e) {
     PropertiesService.getScriptProperties()
@@ -653,4 +660,19 @@ function setupTrigger() {
 function resetBatchCheckpoint() {
   PropertiesService.getScriptProperties().setProperty('pulseLastIdx', '0');
   Logger.log('Batch checkpoint reset to 0.');
+}
+
+// ── Version check — run to confirm WHICH copy of the script is deployed ───────
+// Logs the version constant of the code currently pasted in this editor, plus
+// the last-run heartbeat. If pulseVersion (the property, written on the last
+// successful run) differs from PULSE_VERSION (this file's constant), the editor
+// holds newer code that hasn't executed yet — run runPulseFetch once.
+function checkDeployedVersion() {
+  var props = PropertiesService.getScriptProperties();
+  Logger.log('Editor code version (PULSE_VERSION): ' + PULSE_VERSION);
+  Logger.log('Last successful run version (pulseVersion): ' + (props.getProperty('pulseVersion') || '(never run with a versioned build)'));
+  Logger.log('pulseLastRun:   ' + (props.getProperty('pulseLastRun')   || '(none)'));
+  Logger.log('pulseLastAdded: ' + (props.getProperty('pulseLastAdded') || '(none)'));
+  Logger.log('pulseLastError: ' + (props.getProperty('pulseLastError') || '(none)'));
+  Logger.log('pulseLastIdx:   ' + (props.getProperty('pulseLastIdx')   || '0'));
 }
