@@ -7,6 +7,7 @@
     <title>CLT Startups | Directory</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="assets/filters.css" rel="stylesheet">
     <style>
         :root {
             --bg: #f5f2eb;
@@ -244,7 +245,7 @@
             <!-- Live stats -->
             <div class="flex flex-wrap gap-3">
                 <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55);">
-                    <span id="heroCount" class="text-white font-black">—</span> startups
+                    <span id="heroCount" class="text-white font-black">—</span> <span id="heroCountNoun">startups</span>
                 </div>
                 <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55);">
                     <span id="heroCats" class="text-white font-black">—</span> industries
@@ -260,6 +261,9 @@
     <header id="explore" class="sticky top-0 z-50 backdrop-blur-md">
         <div class="max-w-7xl mx-auto px-6 py-4">
             <div class="flex flex-col gap-3 w-full">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div id="typeToggle"></div>
+                </div>
                 <div class="relative w-full">
                     <input type="text" id="searchInput"
                            placeholder="Search startups by name, industry, keyword..."
@@ -368,6 +372,7 @@
         </div>
     </div>
 
+    <script src="assets/filters.js"></script>
     <script>
         const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTNHcumKyuDJq7RH4oKSp-ANUo97oODMgmy3UBFKRISv-F5bnGawPcc_bTRyRm_Nqm0Oa44WzQl3Qcg/pub?gid=0&single=true&output=csv';
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJMWzAyzORr1SqFlyKmerxhQ3LoeFnPNJmzZzk_k5yG3gResiW7V1QAZlxQ1zUyBhSCw/exec';
@@ -381,12 +386,39 @@
             return CAT_PALETTE[Math.abs(h) % CAT_PALETTE.length];
         }
 
-        let resources = [];
-        let uniqueCategories = [];
+        let resources = [];        // every APPROVED record
+        let population = [];        // resources scoped to the active toggle (startups | ecosystem)
+        let uniqueCategories = [];  // full category list — used by the submit modal
         let currentFilter = 'all';
         let currentLocationFilter = 'all';
+        let currentType = 'startups';
         let searchQuery = '';
         let locationClusters = {};
+        let typeToggle = null;
+
+        function inActivePopulation(r) {
+            return currentType === 'ecosystem'
+                ? PulseFilters.isEcosystem(r.category)
+                : !PulseFilters.isEcosystem(r.category);
+        }
+
+        // Rebuild everything scoped to the active Startups/Ecosystem population.
+        function refreshType() {
+            population = resources.filter(inActivePopulation);
+            currentFilter = 'all';
+            currentLocationFilter = 'all';
+
+            const popCats = new Set();
+            population.forEach(r => { if (r.category) popCats.add(r.category); });
+            document.getElementById('heroCount').textContent = population.length;
+            document.getElementById('heroCats').textContent = popCats.size;
+            const noun = document.getElementById('heroCountNoun');
+            if (noun) noun.textContent = currentType === 'ecosystem' ? 'organizations' : 'startups';
+
+            buildLocationClusters();
+            setupFilters();
+            render();
+        }
 
         function categorizeLocation(location) {
             if (!location) return 'Unknown';
@@ -437,12 +469,16 @@
                 resources.forEach(r => { if (r.category) cats.add(r.category); });
                 uniqueCategories = Array.from(cats).sort();
 
-                document.getElementById('heroCount').textContent = resources.length;
-                document.getElementById('heroCats').textContent = uniqueCategories.length;
+                typeToggle = PulseFilters.buildToggle('typeToggle', {
+                    active: currentType,
+                    onChange: (v) => {
+                        currentType = v;
+                        refreshType();
+                        window.scrollTo({ top: document.getElementById('explore').offsetTop, behavior: 'smooth' });
+                    }
+                });
 
-                buildLocationClusters();
-                setupFilters();
-                render();
+                refreshType();
             } catch (e) {
                 document.getElementById('loadingState').innerHTML = `<p class="font-bold" style="color: #ef4444;">Error loading data.</p>`;
             }
@@ -462,7 +498,7 @@
 
         function buildLocationClusters() {
             locationClusters = {};
-            resources.forEach(r => {
+            population.forEach(r => {
                 if (r.location) {
                     const cluster = categorizeLocation(r.location);
                     if (!locationClusters[cluster]) locationClusters[cluster] = { hq: 0, hub: 0, companies: [] };
@@ -522,13 +558,15 @@
 
         function setupFilters() {
             const counts = {};
-            resources.forEach(r => { if (r.category) counts[r.category] = (counts[r.category] || 0) + 1; });
+            population.forEach(r => { if (r.category) counts[r.category] = (counts[r.category] || 0) + 1; });
             let cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
             const otherIndex = cats.findIndex(c => c.toLowerCase() === 'other');
             if (otherIndex > -1) { const other = cats.splice(otherIndex, 1)[0]; cats.push(other); }
             cats = ['all', ...cats];
 
             const container = document.getElementById('filterContainer');
+            // With one category the pills are just "All / <that one>" — redundant, so hide them.
+            container.style.display = cats.length <= 2 ? 'none' : '';
             container.innerHTML = cats.map(c => `
                 <button onclick="setFilter('${c}')"
                         class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase ${c === 'all' ? 'active' : ''}"
@@ -539,17 +577,13 @@
         }
 
         function clearAllFilters() {
-            currentLocationFilter = 'all';
-            currentFilter = 'all';
-            displayLocationClusters();
-            document.querySelectorAll('.category-pill:not(.loc-chip)').forEach(el => {
-                const isAll = el.innerText.trim().toLowerCase() === 'all';
-                el.classList.toggle('active', isAll);
-                el.style.background = isAll ? 'var(--dark)' : 'white';
-                el.style.color = isAll ? 'white' : 'var(--dark)';
-                el.style.borderColor = isAll ? 'var(--dark)' : 'var(--border)';
-            });
-            render();
+            searchQuery = '';
+            const si = document.getElementById('searchInput');
+            if (si) si.value = '';
+            currentType = 'startups';
+            if (typeToggle) typeToggle.set('startups');
+            // refreshType resets category + location to 'all' and rebuilds pills/clusters/feed.
+            refreshType();
             window.scrollTo({ top: document.getElementById('explore').offsetTop, behavior: 'smooth' });
         }
 
@@ -585,7 +619,7 @@
                 banner.classList.add('hidden');
             }
 
-            const filtered = resources.filter(r => {
+            const filtered = population.filter(r => {
                 const matchesFilter = (currentFilter === 'all' || r.category === currentFilter);
                 const matchesLocation = (currentLocationFilter === 'all' || categorizeLocation(r.location) === currentLocationFilter);
                 const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -179,3 +179,54 @@
 
 ### Enhancements Logged
 - None new (ENH-007's per-company blocklist remains a good follow-up)
+
+---
+
+## Session 5 — 2026-07-09
+
+### Changes Made
+
+**Cross-page filtering overhaul (frontend only — no GAS changes):**
+- New shared assets `assets/filters.js` + `assets/filters.css`, included by both
+  `index.html` and `pulse.html` so the filter UX stays consistent instead of diverging.
+  Exposes `PulseFilters`: `isEcosystem`, `escHtml`, title-dedup (`normalizeTitle`,
+  `titleSimilarity` (Jaccard), `dedupeByTitle`), and a segmented `buildToggle`. Also
+  exports for Node so the dedup logic is unit-testable.
+- **Startups ↔ Ecosystem toggle** on both pages. Support orgs = records whose `category`
+  is "Ecosystem" (per user); startups = everything else.
+  - `index.html`: toggle scopes the population; category pills, counts, hero number + noun
+    ("startups"/"organizations"), and location clusters all recompute. Category pills hide
+    when the population has a single category. `uniqueCategories` (submit modal) stays the
+    full list.
+  - `pulse.html`: fetches the directory CSV (gid=0) in parallel to build a
+    company→isEcosystem map, then filters articles by the active toggle; unknown companies
+    default to startup.
+- **Unified search + consistent clear-filter + active-filter banner** ported to `pulse.html`
+  (previously company-chips only) using the shared `.pf-*` styles, matching `index.html`.
+  Pulse search filters both the chip list and the feed (company or headline).
+- **Pulse title-similarity dedup (≥90%)** added after the existing URL dedup in `fetchPulse`
+  (ENH-006) — same story under different syndication URLs collapses to one card, highest
+  score kept.
+- `.pf-search` uses `box-sizing: border-box` so the shared component doesn't rely on the
+  host page's CSS reset (prevents mobile overflow when Tailwind's reset is absent).
+
+### Verification
+- `assets/filters.js` dedup/similarity unit-tested in Node.
+- Both pages driven end-to-end in headless Chromium (playwright-core) against local CSV
+  fixtures with routed CSV responses: 22/22 checks — toggle repopulates counts/pills/noun,
+  search narrows chips + results, clear resets toggle+search+category identically, title
+  dedup collapses near-duplicates, company→category join + startup fallback correct, no
+  horizontal overflow at 375px, no page JS errors.
+
+### Deferred (explicitly out of scope this pass)
+- Relevance redesign (`computeRelevanceScore`, `GENERIC_NAME_PENALTY`,
+  `pulse_exclude_keywords`, shadow-logging) — `gas-pulse.gs` pass, later.
+- Pulse per-card hide button — needs a GAS `doPost` write-back endpoint; deferred with the
+  backend work so it isn't shipped non-functional.
+
+### Bugs Found
+- None new
+
+### Enhancements Logged
+- ENH-006 (title-similarity dedup) partially delivered — client-side display dedup done;
+  server-side/cross-company tagging still open.

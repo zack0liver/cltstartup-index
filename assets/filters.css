@@ -1,0 +1,95 @@
+/* ============================================================
+ * CLTStartups — shared filter styling (index.html + pulse.html)
+ * Keeps the Startups/Ecosystem toggle, search box, and active-filter
+ * banner visually identical across both pages. Relies on the CSS
+ * custom properties defined in each page's :root (with fallbacks).
+ * ============================================================ */
+
+/* Startups / Ecosystem segmented toggle */
+.pf-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg, #f5f2eb);
+  border: 1.5px solid var(--border, #e8e4da);
+  border-radius: 999px;
+}
+.pf-toggle-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted, #6b7280);
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+.pf-toggle-btn.active {
+  background: var(--dark, #0a0f1e);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(10, 15, 30, 0.15);
+}
+.pf-toggle-btn:not(.active):hover {
+  color: var(--dark, #0a0f1e);
+}
+
+/* Shared search input */
+.pf-search-wrap { position: relative; width: 100%; }
+.pf-search {
+  box-sizing: border-box; /* self-contained — don't rely on the host page's reset */
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  background: #fff;
+  border: 1.5px solid var(--border, #e8e4da);
+  color: var(--text, #0a0f1e);
+}
+.pf-search:focus { border-color: var(--dark, #0a0f1e); }
+.pf-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 20px;
+  width: 20px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+/* Shared active-filter banner */
+.pf-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(0, 229, 160, 0.08);
+  border: 1px solid rgba(0, 229, 160, 0.2);
+}
+.pf-banner-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dark, #0a0f1e);
+}
+.pf-clear {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  color: var(--muted, #6b7280);
+  background: rgba(10, 15, 30, 0.05);
+}
+.pf-clear:hover { opacity: 0.7; }

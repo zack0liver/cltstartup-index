@@ -6,6 +6,7 @@
     <title>Pulse | CLT Startups</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="assets/filters.css" rel="stylesheet">
     <style>
         :root {
             --bg: #f5f2eb;
@@ -137,10 +138,23 @@
         </div>
     </section>
 
-    <!-- Sticky chip bar -->
+    <!-- Sticky filter bar -->
     <div id="chipBar" class="sticky top-0 z-50 px-6 py-3">
-        <div class="max-w-2xl mx-auto">
+        <div class="max-w-2xl mx-auto flex flex-col gap-3">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div id="typeToggle"></div>
+            </div>
+            <div class="pf-search-wrap">
+                <input type="text" id="companySearch" class="pf-search" placeholder="Search companies or headlines...">
+                <svg class="pf-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
             <div id="companyChips" class="flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
+            <div id="activeFilterBanner" class="pf-banner hidden">
+                <span id="activeFilterLabel" class="pf-banner-label"></span>
+                <button onclick="clearAllFilters()" class="pf-clear">Clear</button>
+            </div>
         </div>
     </div>
 
@@ -190,11 +204,15 @@
         </div>
     </footer>
 
+    <script src="assets/filters.js"></script>
     <script>
         // ── Config ──────────────────────────────────────────────────────────────
         // Paste the published CSV URL of your Pulse Google Sheet tab here.
         // File → Share → Publish to web → "Pulse" tab → CSV → copy URL
         const PULSE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTNHcumKyuDJq7RH4oKSp-ANUo97oODMgmy3UBFKRISv-F5bnGawPcc_bTRyRm_Nqm0Oa44WzQl3Qcg/pub?gid=961610690&single=true&output=csv';
+        // Directory tab (gid=0) — same sheet index.html reads. Used only to learn
+        // which companies are Ecosystem support orgs vs startups for the toggle.
+        const DIRECTORY_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTNHcumKyuDJq7RH4oKSp-ANUo97oODMgmy3UBFKRISv-F5bnGawPcc_bTRyRm_Nqm0Oa44WzQl3Qcg/pub?gid=0&single=true&output=csv';
 
         // ── Color palette — matches index.html ──────────────────────────────────
         const CAT_PALETTE = ['#6366f1','#10b981','#f59e0b','#ec4899','#0ea5e9','#f97316','#8b5cf6','#14b8a6','#ef4444','#a855f7','#84cc16'];
@@ -206,8 +224,12 @@
         }
 
         // ── State ────────────────────────────────────────────────────────────────
-        let articles      = [];
+        let allArticles   = [];    // display-eligible, URL- + title-deduped
+        let companyIsEco  = {};    // lowercased company name → true if Ecosystem org
         let activeCompany = 'all';
+        let currentType   = 'startups';
+        let companySearch = '';
+        let typeToggle    = null;
 
         // ── Boot ─────────────────────────────────────────────────────────────────
         window.onload = fetchPulse;
@@ -220,9 +242,15 @@
                 return;
             }
             try {
-                const res  = await fetch(PULSE_SHEET_CSV_URL + '&t=' + Date.now());
-                const csv  = await res.text();
-                const parsed = parsePulseCSV(csv);
+                // Pulse feed + directory (for company→type) fetched in parallel.
+                const [pulseCsv, dirResult] = await Promise.all([
+                    fetch(PULSE_SHEET_CSV_URL + '&t=' + Date.now()).then(r => r.text()),
+                    fetch(DIRECTORY_CSV_URL + '&t=' + Date.now()).then(r => r.text()).catch(() => '')
+                ]);
+
+                companyIsEco = buildCompanyTypeMap(dirResult);
+
+                const parsed = parsePulseCSV(pulseCsv);
 
                 // Deduplicate by URL — keep highest score if same article tagged to multiple companies
                 const byUrl = {};
@@ -232,17 +260,104 @@
 
                 // Filter: within 1 year, score ≥ 60, not manually excluded
                 const cutoff = Date.now() - 365 * 86400000;
-                articles = Object.values(byUrl)
+                let eligible = Object.values(byUrl)
                     .filter(a => new Date(a.published).getTime() > cutoff && a.score >= 60 && (a.exclude || '').toLowerCase() !== 'exclude')
                     .sort((a, b) => new Date(b.published) - new Date(a.published));
 
-                updateHeroStats();
-                buildCompanyChips();
-                renderFeed();
+                // Collapse near-identical headlines (same story, different syndication URLs).
+                allArticles = PulseFilters.dedupeByTitle(eligible, { threshold: 0.9 });
+
+                typeToggle = PulseFilters.buildToggle('typeToggle', {
+                    active: currentType,
+                    onChange: (v) => {
+                        currentType = v;
+                        activeCompany = 'all';
+                        renderAll();
+                        window.scrollTo({ top: document.getElementById('chipBar').offsetTop, behavior: 'smooth' });
+                    }
+                });
+
+                document.getElementById('companySearch').oninput = (e) => {
+                    companySearch = e.target.value;
+                    renderAll();
+                };
+
+                renderAll();
             } catch(e) {
                 document.getElementById('loadingState').innerHTML =
                     '<p class="font-bold text-sm" style="color: #ef4444;">Error loading feed. Please try again.</p>';
             }
+        }
+
+        // Build lowercased company → isEcosystem map from the directory CSV.
+        function buildCompanyTypeMap(csv) {
+            const map = {};
+            if (!csv) return map;
+            const lines = csv.trim().split('\n');
+            if (lines.length < 2) return map;
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const titleIdx = headers.indexOf('title');
+            const catIdx   = headers.indexOf('category');
+            if (titleIdx === -1 || catIdx === -1) return map;
+            lines.slice(1).forEach(line => {
+                const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                const name = (values[titleIdx] || '').replace(/"/g, '').trim();
+                const cat  = (values[catIdx]   || '').replace(/"/g, '').trim();
+                if (name) map[name.toLowerCase()] = PulseFilters.isEcosystem(cat);
+            });
+            return map;
+        }
+
+        // Article's company classified as Ecosystem? Unknown companies default to startup.
+        function isCompanyEco(company) {
+            return companyIsEco[(company || '').trim().toLowerCase()] === true;
+        }
+
+        // allArticles scoped to the active Startups/Ecosystem toggle.
+        function typePool() {
+            return allArticles.filter(a =>
+                currentType === 'ecosystem' ? isCompanyEco(a.company) : !isCompanyEco(a.company));
+        }
+
+        // typePool further narrowed by company chip + search box.
+        function getVisible() {
+            let list = typePool();
+            if (activeCompany !== 'all') list = list.filter(a => a.company === activeCompany);
+            const q = companySearch.trim().toLowerCase();
+            if (q) list = list.filter(a =>
+                (a.company || '').toLowerCase().includes(q) || (a.title || '').toLowerCase().includes(q));
+            return list;
+        }
+
+        function renderAll() {
+            updateHeroStats();
+            buildCompanyChips();
+            renderFeed();
+            updateBanner();
+        }
+
+        function updateBanner() {
+            const banner = document.getElementById('activeFilterBanner');
+            const parts = [];
+            if (activeCompany !== 'all') parts.push(activeCompany);
+            if (companySearch.trim()) parts.push('“' + companySearch.trim() + '”');
+            if (parts.length) {
+                document.getElementById('activeFilterLabel').textContent = 'Filtering: ' + parts.join(' · ');
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        function clearAllFilters() {
+            activeCompany = 'all';
+            companySearch = '';
+            const si = document.getElementById('companySearch');
+            if (si) si.value = '';
+            currentType = 'startups';
+            if (typeToggle) typeToggle.set('startups');
+            renderAll();
+            window.scrollTo({ top: document.getElementById('chipBar').offsetTop, behavior: 'smooth' });
         }
 
         function parsePulseCSV(text) {
@@ -260,49 +375,49 @@
 
         // ── Hero stats ───────────────────────────────────────────────────────────
         function updateHeroStats() {
-            document.getElementById('heroCount').textContent = articles.length;
-            const sources = new Set(articles.map(a => a.source).filter(Boolean));
+            const pool = typePool();
+            document.getElementById('heroCount').textContent = pool.length;
+            const sources = new Set(pool.map(a => a.source).filter(Boolean));
             document.getElementById('heroSources').textContent = sources.size;
-            if (articles.length > 0) {
-                const latest = articles[0].fetched || articles[0].published;
+            if (pool.length > 0) {
+                const latest = pool[0].fetched || pool[0].published;
                 if (latest) document.getElementById('heroUpdated').textContent = relativeDate(latest);
             }
         }
 
         // ── Company chips ────────────────────────────────────────────────────────
         function buildCompanyChips() {
-            const companies = [...new Set(articles.map(a => a.company).filter(Boolean))].sort();
+            // Chips reflect the active toggle population, narrowed by the search box.
+            const q = companySearch.trim().toLowerCase();
+            let companies = [...new Set(typePool().map(a => a.company).filter(Boolean))].sort();
+            if (q) companies = companies.filter(c => c.toLowerCase().includes(q));
             const container = document.getElementById('companyChips');
 
+            const allActive = activeCompany === 'all';
             const allChip = `<button onclick="setCompanyFilter('all')"
                 data-company="all"
-                class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase active"
-                style="border-color: var(--dark); background: var(--dark); color: white;">
+                class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase ${allActive ? 'active' : ''}"
+                style="border-color: ${allActive ? 'var(--dark)' : 'var(--border)'}; background: ${allActive ? 'var(--dark)' : 'white'}; color: ${allActive ? 'white' : 'var(--dark)'};">
                 All
             </button>`;
 
-            const chips = companies.map(c => `
+            const chips = companies.map(c => {
+                const isActive = c === activeCompany;
+                return `
                 <button onclick="setCompanyFilter(this.dataset.company)"
                     data-company="${escHtml(c)}"
-                    class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase"
-                    style="border-color: var(--border); background: white; color: var(--dark);">
+                    class="category-pill px-4 py-1.5 rounded-full border transition-all uppercase ${isActive ? 'active' : ''}"
+                    style="border-color: ${isActive ? 'var(--dark)' : 'var(--border)'}; background: ${isActive ? 'var(--dark)' : 'white'}; color: ${isActive ? 'white' : 'var(--dark)'};">
                     ${escHtml(c)}
-                </button>
-            `).join('');
+                </button>`;
+            }).join('');
 
             container.innerHTML = allChip + chips;
         }
 
         function setCompanyFilter(company) {
             activeCompany = company;
-            document.querySelectorAll('#companyChips .category-pill').forEach(el => {
-                const isActive = el.dataset.company === company;
-                el.classList.toggle('active', isActive);
-                el.style.background  = isActive ? 'var(--dark)' : 'white';
-                el.style.color       = isActive ? 'white' : 'var(--dark)';
-                el.style.borderColor = isActive ? 'var(--dark)' : 'var(--border)';
-            });
-            renderFeed();
+            renderAll();
             window.scrollTo({ top: document.getElementById('chipBar').offsetTop, behavior: 'smooth' });
         }
 
@@ -312,9 +427,7 @@
             const feed  = document.getElementById('articleFeed');
             const empty = document.getElementById('emptyState');
 
-            const filtered = activeCompany === 'all'
-                ? articles
-                : articles.filter(a => a.company === activeCompany);
+            const filtered = getVisible();
 
             if (filtered.length === 0) {
                 feed.classList.add('hidden');
