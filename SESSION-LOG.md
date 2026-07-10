@@ -230,3 +230,11 @@
 ### Enhancements Logged
 - ENH-006 (title-similarity dedup) partially delivered — client-side display dedup done;
   server-side/cross-company tagging still open.
+
+### Planning
+- **GITHUB-MIGRATION-PLAN.md added** — full migration off Google Sheets to a GitHub-native
+  loop (intake via GAS-relay→issues, approval via draft-PR merge, Actions fetch pipeline with
+  unified relevance scoring, community flags with AI-over-threshold moderation via GitHub
+  Models, $0/month). Supersedes Piece 0 of PULSE-SOURCES-PLAN.md. Owner decisions locked:
+  GAS stays as thin stateless relay (no new accounts); AI auto-decides exclusions above a
+  confidence threshold with owner override. Awaiting greenlight to execute Phase 0.

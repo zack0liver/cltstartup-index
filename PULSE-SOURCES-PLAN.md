@@ -1,5 +1,11 @@
 # Plan: Pulse multi-source pipeline on GitHub Actions
 
+> **Note (2026-07-09):** Piece 0 (git as the company database) and the Actions scaffold are
+> now subsumed by **`GITHUB-MIGRATION-PLAN.md`**, which covers the full Google-Sheets
+> migration (intake, approval, fetch, moderation). Execute that plan first; the multi-source
+> pieces below (blog RSS, news pages, EDGAR) remain valid and plug into its `pulse-fetch.js`
+> source interface post-migration.
+
 **Status:** Approved, not yet implemented
 **Date:** 2026-07-07
 **Prerequisite:** Deploy the current gas-pulse.gs update first (see PULSE-EVALUATION.md deployment checklist)
