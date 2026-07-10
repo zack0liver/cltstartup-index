@@ -41,6 +41,26 @@ that loop regardless of which model is doing the debugging — which is why §7 
 scripts locally with fixtures before their first CI run. A weaker model with a good local
 harness beats a stronger model flying blind straight into CI.
 
+### Local Claude Code vs. a remote/cloud session
+
+Running Claude Code locally (clone the repo, work on your own machine) does **not** reduce
+token consumption for equivalent work — tokens are billed per what enters/exits the model's
+context, identically whether the CLI runs locally or in a remote sandbox, on the same
+Anthropic account either way. Local Claude Code is not "cheaper per token."
+
+What it plausibly *does* reduce is **CI round-trips**, which is the actual expensive resource
+above. A locked-down remote sandbox may block outbound requests to hosts like
+`docs.google.com` (this was true of the sandbox that authored this plan), forcing Phase 0–2
+connectivity checks (Google News RSS, the Sheets CSV exports, EDGAR) through an actual GitHub
+Actions run just to see if a fetch works. A local machine typically has open internet access,
+so the executor can `curl`/test those endpoints directly while writing `pulse-fetch.js`,
+catching bugs in seconds instead of via a push-wait-read-logs cycle. Net effect: same tokens
+per fix, but likely fewer pushes needed to land Phase 0–2 — real time and iteration savings,
+just not a "tokens are free locally" effect. (A bare local Claude Code setup also skips the
+unrelated MCP integrations — Slack, Gmail, Canva, etc. — that a fully-loaded remote session
+may carry, trimming some incidental context overhead, though this is minor next to the CI
+round-trip difference.)
+
 ## 0. Mission and definition of done
 
 Migrate `cltstartups.com` off Google Sheets/Apps Script onto a GitHub-native system that runs
