@@ -2,7 +2,7 @@
 
 **Status:** Planned, awaiting greenlight — not yet implemented
 **Date:** 2026-07-09 (v2 same day — simplified after self-critique; v1 in git history)
-**Executor:** a future Claude (Opus/Sonnet) session; read §7 first
+**Executor:** a future Claude session; read the model-recommendation section below, then §7
 **Supersedes:** Piece 0 of `PULSE-SOURCES-PLAN.md` (multi-source pieces there remain valid, post-migration)
 
 **v2 changes in one line:** port the already-Node-proven scoring as-is (redesign later), label
@@ -10,6 +10,36 @@ approval instead of draft PRs (avoids the GITHUB_TOKEN trigger trap), issues ARE
 store (no flags.json), 1 flag → AI review (no dead threshold), 7 workflows → 3, plain
 validator instead of JSON Schema, AI fails open to human review, no parallel-run comparison
 tooling, no canary/min-time theater.
+
+## Which Claude model to execute this with
+
+**Default to Sonnet 5 for nearly all of it.** This plan is a highly specified execution doc —
+file names, acceptance criteria, known traps pre-flagged, and the scoring logic ships
+*verbatim* (guarded by the existing 16-case regression suite) rather than being redesigned.
+That profile — architectural judgment already made and encoded in the doc, executor mostly
+needs to follow it faithfully and test as it goes — is exactly where Sonnet is reliable and
+cheap. Since the whole point of this project is $0/month to run, the same frugality should
+apply to the tokens spent building it: don't spend Opus-tier reasoning on label-triggered
+workflow YAML.
+
+**Switch to Opus 4.8 for two specific moments, not wholesale:**
+1. **Phase 0 if the RSS spike fails.** Deciding between risk-1 mitigations vs. cutting to
+   Plan B is an ambiguous judgment call that reshapes the plan — not execution of it.
+2. **Phase 4's AI moderation integration** — writing the injection-resistant verdict prompt,
+   and debugging GitHub Models inside CI if it misbehaves. Debugging an external integration
+   through the slow CI iteration loop (see §7) is where a stronger model earns back its cost
+   by getting it right in fewer round-trips.
+
+**Practical rule of thumb:** greenlight with Sonnet 5; if it stalls twice on the same problem,
+hand *that one problem* to Opus rather than switching models for the whole run. The plan is
+written to be executor-agnostic so this handoff costs nothing.
+
+The real expense in this project isn't model reasoning, it's the **CI iteration loop**:
+GitHub Actions runs happen on a push→schedule-runner→boot→execute→write-logs cycle that costs
+minutes per round-trip, versus sub-second local feedback. Every workflow debug cycle costs
+that loop regardless of which model is doing the debugging — which is why §7 mandates testing
+scripts locally with fixtures before their first CI run. A weaker model with a good local
+harness beats a stronger model flying blind straight into CI.
 
 ## 0. Mission and definition of done
 
@@ -230,7 +260,7 @@ validation is a plain function, see §2.)
 4. Review the import diff (Phase 1) and add `approved` labels to intake issues thereafter —
    that's the whole ongoing maintenance surface, by design.
 
-## 7. Executor notes (for the Opus/Sonnet session that implements this)
+## 7. Executor notes (for the session that implements this — see model recommendation above)
 - Read first: `PULSE-EVALUATION.md` (scoring + tests context), `gas-pulse.gs` (reference
   implementation — its pure functions are reused, not rewritten), `pulse-logic-test.js`
   (regression harness; keep its eval-the-real-code pattern), `assets/filters.js` (reusable
