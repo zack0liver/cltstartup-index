@@ -144,13 +144,15 @@
             <div class="flex items-center justify-between gap-3 flex-wrap">
                 <div id="typeToggle"></div>
             </div>
-            <div class="pf-search-wrap">
-                <input type="text" id="companySearch" class="pf-search" placeholder="Search companies or headlines...">
-                <svg class="pf-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+            <div id="filterControls" class="flex flex-col gap-3">
+                <div class="pf-search-wrap">
+                    <input type="text" id="companySearch" class="pf-search" placeholder="Search companies or headlines...">
+                    <svg class="pf-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <div id="companyChips" class="flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
             </div>
-            <div id="companyChips" class="flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
             <div id="activeFilterBanner" class="pf-banner hidden">
                 <span id="activeFilterLabel" class="pf-banner-label"></span>
                 <button onclick="clearAllFilters()" class="pf-clear">Clear</button>
@@ -170,6 +172,16 @@
                 <div class="text-4xl mb-3">📡</div>
                 <p class="font-black text-lg" style="color: var(--dark);">No articles yet</p>
                 <p class="text-sm mt-1" style="color: var(--muted);">Check back after the feed runs its first cycle</p>
+            </div>
+            <div id="constructionState" class="hidden text-center py-24 rounded-3xl border-2 border-dashed" style="border-color: var(--border);">
+                <div class="text-4xl mb-3">🚧</div>
+                <p class="font-black text-lg" style="color: var(--dark);">Startups Feed — Under Construction</p>
+                <p class="text-sm mt-2 max-w-sm mx-auto" style="color: var(--muted);">
+                    Notice: the Startups Pulse algorithm is undergoing quality review after mistaking a Rebel Wilson lawsuit for local funding news. Service expected to resume shortly.
+                </p>
+                <p class="text-xs mt-4 font-bold uppercase tracking-widest" style="color: var(--muted);">
+                    In the meantime, the Ecosystem feed remains fully operational →
+                </p>
             </div>
             <div id="articleFeed" class="space-y-4 hidden"></div>
         </div>
@@ -227,7 +239,10 @@
         let allArticles   = [];    // display-eligible, URL- + title-deduped
         let companyIsEco  = {};    // lowercased company name → true if Ecosystem org
         let activeCompany = 'all';
-        let currentType   = 'startups';
+        // Startups feed disabled — too many algorithm false positives (see #renderFeed).
+        // Ecosystem is the reliable default; Startups is still selectable but shows
+        // the under-construction notice instead of the noisy feed.
+        let currentType   = 'ecosystem';
         let companySearch = '';
         let typeToggle    = null;
 
@@ -331,7 +346,13 @@
 
         function renderAll() {
             updateHeroStats();
-            buildCompanyChips();
+            const filterControls = document.getElementById('filterControls');
+            if (currentType === 'startups') {
+                filterControls.classList.add('hidden');
+            } else {
+                filterControls.classList.remove('hidden');
+                buildCompanyChips();
+            }
             renderFeed();
             updateBanner();
         }
@@ -354,8 +375,8 @@
             companySearch = '';
             const si = document.getElementById('companySearch');
             if (si) si.value = '';
-            currentType = 'startups';
-            if (typeToggle) typeToggle.set('startups');
+            currentType = 'ecosystem';
+            if (typeToggle) typeToggle.set('ecosystem');
             renderAll();
             window.scrollTo({ top: document.getElementById('chipBar').offsetTop, behavior: 'smooth' });
         }
@@ -375,6 +396,12 @@
 
         // ── Hero stats ───────────────────────────────────────────────────────────
         function updateHeroStats() {
+            if (currentType === 'startups') {
+                document.getElementById('heroCount').textContent = '—';
+                document.getElementById('heroSources').textContent = '—';
+                document.getElementById('heroUpdated').textContent = 'soon';
+                return;
+            }
             const pool = typePool();
             document.getElementById('heroCount').textContent = pool.length;
             const sources = new Set(pool.map(a => a.source).filter(Boolean));
@@ -424,8 +451,17 @@
         // ── Render ───────────────────────────────────────────────────────────────
         function renderFeed() {
             document.getElementById('loadingState').classList.add('hidden');
-            const feed  = document.getElementById('articleFeed');
-            const empty = document.getElementById('emptyState');
+            const feed         = document.getElementById('articleFeed');
+            const empty        = document.getElementById('emptyState');
+            const construction = document.getElementById('constructionState');
+
+            if (currentType === 'startups') {
+                feed.classList.add('hidden');
+                empty.classList.add('hidden');
+                construction.classList.remove('hidden');
+                return;
+            }
+            construction.classList.add('hidden');
 
             const filtered = getVisible();
 
