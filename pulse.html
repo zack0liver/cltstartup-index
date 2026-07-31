@@ -16,6 +16,7 @@
             --border: #e8e4da;
             --text: #0a0f1e;
             --muted: #6b7280;
+            --warn: #f59e0b;
         }
 
         html { scroll-behavior: smooth; }
@@ -79,6 +80,43 @@
             box-shadow: 0 12px 32px -8px rgba(10, 15, 30, 0.1);
             border-color: rgba(10, 15, 30, 0.25);
         }
+
+        /* Startups under-construction notice.
+           Deliberately styled as an official service notice — a solid card in
+           the same idiom as .news-card — rather than reusing the dashed
+           "nothing here" empty state, which reads as absence instead of intent. */
+        .notice-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-top: 3px solid var(--warn);
+            border-radius: 20px;
+            box-shadow: 0 12px 32px -12px rgba(10, 15, 30, 0.08);
+        }
+        .notice-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(245, 158, 11, 0.09);
+            border: 1px solid rgba(245, 158, 11, 0.16);
+            color: var(--warn);
+            border-radius: 100px;
+            padding: 6px 14px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .notice-cta {
+            background: var(--accent);
+            color: var(--dark);
+            border-radius: 100px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 900;
+            transition: all 0.2s;
+        }
+        .notice-cta:hover  { opacity: 0.9; }
+        .notice-cta:active { transform: scale(0.95); }
 
         /* Sticky chip bar */
         #chipBar {
@@ -173,15 +211,18 @@
                 <p class="font-black text-lg" style="color: var(--dark);">No articles yet</p>
                 <p class="text-sm mt-1" style="color: var(--muted);">Check back after the feed runs its first cycle</p>
             </div>
-            <div id="constructionState" class="hidden text-center py-24 rounded-3xl border-2 border-dashed" style="border-color: var(--border);">
-                <div class="text-4xl mb-3">🚧</div>
-                <p class="font-black text-lg" style="color: var(--dark);">Startups Feed — Under Construction</p>
-                <p class="text-sm mt-2 max-w-sm mx-auto" style="color: var(--muted);">
-                    Notice: the Startups Pulse algorithm is undergoing quality review after mistaking a Rebel Wilson lawsuit for local funding news. Service expected to resume shortly.
+            <div id="constructionState" class="hidden notice-card text-center px-8 py-16">
+                <div class="notice-pill mb-6">
+                    <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--warn); flex-shrink: 0;"></span>
+                    Service Notice
+                </div>
+                <h2 class="font-black tracking-tight mb-3" style="color: var(--dark); font-size: clamp(1.5rem, 4vw, 1.875rem);">
+                    Startups Feed — Under Construction
+                </h2>
+                <p class="text-[15px] font-medium leading-relaxed max-w-md mx-auto mb-8" style="color: var(--muted);">
+                    The Startups Pulse algorithm is undergoing quality review after mistaking a Rebel Wilson lawsuit for local funding news. Service expected to resume shortly.
                 </p>
-                <p class="text-xs mt-4 font-bold uppercase tracking-widest" style="color: var(--muted);">
-                    In the meantime, the Ecosystem feed remains fully operational →
-                </p>
+                <button onclick="goToEcosystem()" class="notice-cta">View Ecosystem Feed →</button>
             </div>
             <div id="articleFeed" class="space-y-4 hidden"></div>
         </div>
@@ -368,6 +409,16 @@
             } else {
                 banner.classList.add('hidden');
             }
+        }
+
+        // CTA on the under-construction notice. typeToggle.set() only repaints the
+        // toggle — it intentionally doesn't fire onChange — so drive the switch here.
+        function goToEcosystem() {
+            currentType   = 'ecosystem';
+            activeCompany = 'all';
+            if (typeToggle) typeToggle.set('ecosystem');
+            renderAll();
+            window.scrollTo({ top: document.getElementById('chipBar').offsetTop, behavior: 'smooth' });
         }
 
         function clearAllFilters() {
